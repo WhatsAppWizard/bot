@@ -18,5 +18,8 @@
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.27.0"
   }
 }
