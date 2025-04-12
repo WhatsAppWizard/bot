@@ -24,8 +24,6 @@ async function main() {
   // Make WhatsApp instance accessible to routes
   app.set("whatsapp", whatsapp);
 
-  const Web = app;
-
   whatsapp.initialize().then(() => {
     whatsapp.GetQRCode();
   });
@@ -37,19 +35,19 @@ async function main() {
  */
 function setupExitHandlers(whatsappService: WhatsApp) {
   // Handle graceful shutdown
-  process.on('SIGINT', () => cleanup(whatsappService));
-  process.on('SIGTERM', () => cleanup(whatsappService));
-  
+  process.on("SIGINT", () => cleanup(whatsappService));
+  process.on("SIGTERM", () => cleanup(whatsappService));
+
   // Handle uncaught exceptions
-  process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error);
     cleanup(whatsappService);
     process.exit(1);
   });
-  
+
   // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
     cleanup(whatsappService);
     process.exit(1);
   });
@@ -60,7 +58,7 @@ function setupExitHandlers(whatsappService: WhatsApp) {
  * @param whatsappService WhatsApp service instance
  */
 function cleanup(whatsappService: WhatsApp) {
-  console.log('Cleaning up...');
+  console.log("Cleaning up...");
   whatsappService.clearQRCodes();
   process.exit(0);
 }

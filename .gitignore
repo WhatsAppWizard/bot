@@ -139,3 +139,5 @@ dist
 .wwebjs_cache
 DEV
 public/media/*
+migrations
+generated

@@ -15,12 +15,32 @@ datasource db {
 }
 
 model User {
-  id String   @id @default(uuid())
-  name String
-  phone String
-  country String
-  platform String
+  id        String      @id @default(uuid())
+  name      String
+  phone     String
+  country   String
+  platform  String
+  stickers  Stickers[]
+  downloads Downloads[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Downloads {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  platform    String
+  urlFromUser String
+  downloadUrl String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Stickers {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-// model Mess

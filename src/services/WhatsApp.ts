@@ -109,7 +109,11 @@ class WhatsApp {
           fs.writeFileSync(mediaPath, Buffer.from(media.data, "base64"));
 
           // send media back to user as Sticker
-          message.reply(MessageMedia.fromFilePath(mediaPath), "", {sendMediaAsSticker:true,stickerAuthor:"wwz.gitnasr.com",stickerName:"WhatsApp Wizard v3.0"});
+          message.reply(MessageMedia.fromFilePath(mediaPath), "", {
+            sendMediaAsSticker: true,
+            stickerAuthor: "wwz.gitnasr.com",
+            stickerName: "WhatsApp Wizard v3.0",
+          });
         }
       }
     });
@@ -140,7 +144,7 @@ class WhatsApp {
           console.error("Error checking unread messages:", error);
         }
       }
-    }, 5000); 
+    }, 5000);
   }
 
   GetQRCode() {
