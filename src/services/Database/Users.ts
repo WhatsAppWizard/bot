@@ -17,8 +17,8 @@ class Users {
     return user !== null;
   }
 
-  public async createUser(user: User) {
-    await this.prisma.user.create({
+  public async createUser(user: Partial<User>): Promise<User> {
+    return await this.prisma.user.create({
       data: user,
     });
   }

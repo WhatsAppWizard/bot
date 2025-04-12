@@ -3,6 +3,8 @@ import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 import QRCode from "qr-image";
 import QueueService from "./Queue";
 import SocketHandler from "./SocketHandler";
+import StickersService from "./Database/Stickers";
+import Users from "./Database/Users";
 import fs from "fs";
 import path from "path";
 
@@ -13,6 +15,9 @@ class WhatsApp {
   public isAuthenticated: boolean = false;
   public unreadChats: number = 0;
   public queueService: QueueService;
+
+  private users: Users;
+  private stickers: StickersService;
 
   constructor() {
     this.client = new Client({
@@ -36,11 +41,8 @@ class WhatsApp {
     this.socketHandler = new SocketHandler(this);
     this.queueService = QueueService.getInstance();
 
-    // Listen for sticker job completion events
-    this.queueService.on(
-      "stickersJobCompleted",
-      this.handleStickersJobCompleted.bind(this)
-    );
+    this.users = new Users();
+    this.stickers = new StickersService();
   }
 
   setSocketIO(io: any) {
@@ -98,8 +100,19 @@ class WhatsApp {
           id: { id },
           from,
           body,
+          timestamp,
         } = message;
         if (mediaType === "image/jpeg" || mediaType === "image/png") {
+          // save user to Database
+          let user = await this.users.getUser(from);
+          if (!user) {
+            user = await this.users.createUser({
+              name: chatInfo.name,
+              phone: from,
+              platform: message.deviceType,
+              country: "N/A",
+            });
+          }
           const mediaPath = path.join(
             process.cwd(),
             "public",
@@ -114,6 +127,11 @@ class WhatsApp {
             stickerAuthor: "wwz.gitnasr.com",
             stickerName: "WhatsApp Wizard v3.0",
           });
+
+          fs.rmSync(mediaPath);
+
+          // save sticker
+          this.stickers.create(user.id, timestamp, body);
         }
       }
     });
@@ -170,26 +188,11 @@ class WhatsApp {
     try {
       // Check if QR code file exists
       if (fs.existsSync(this.qrCodePath)) {
-        // Delete the QR code file
         fs.unlinkSync(this.qrCodePath);
-        console.log("QR code file deleted successfully");
       }
     } catch (error) {
       console.error("Error deleting QR code file:", error);
     }
-  }
-
-  private handleStickersJobCompleted(data: { jobId: string; result: any }) {
-    console.log(`Stickers job ${data.jobId} completed with result:`);
-
-    // Here you can handle the job result
-    // For example, send the sticker back to the user
-    const message = data.result.message;
-    const stickerPath = data.result.stickerPath;
-    console.log(
-      "🚀 ~ WhatsApp ~ handleStickersJobCompleted ~ stickerPath:",
-      stickerPath
-    );
   }
 }
 
