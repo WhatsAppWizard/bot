@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../generated/prisma/client";
 
 class Database {
   private static instance: Database;
@@ -14,7 +14,7 @@ class Database {
     }
     return Database.instance;
   }
-  public static async GetClient(): Promise<PrismaClient> {
+  public static  GetClient(): PrismaClient {
     return this.getInstance().prisma;
   }
 }

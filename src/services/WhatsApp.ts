@@ -1,12 +1,12 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
-import QRCode from "qr-image";
-import QueueService from "./Queue";
-import SocketHandler from "./SocketHandler";
-import StickersService from "./Database/Stickers";
-import Users from "./Database/Users";
 import fs from "fs";
 import path from "path";
+import QRCode from "qr-image";
+import StickersService from "./Database/Stickers";
+import Users from "./Database/Users";
+import QueueService from "./Queue";
+import SocketHandler from "./SocketHandler";
 
 class WhatsApp {
   private client: Client;
@@ -83,6 +83,7 @@ class WhatsApp {
 
       // Set up message event handler
       this.setupMessageHandler();
+      this.RegisterMessageCheck();
     });
   }
 
@@ -94,25 +95,25 @@ class WhatsApp {
         return; // We're not interested in group messages .
       }
       if (message.hasMedia) {
+
+
+
+
         const media = await message.downloadMedia();
+        const contactInfo = await message.getContact();
+
         const mediaType = media.mimetype;
-        const {
-          id: { id },
-          from,
-          body,
-          timestamp,
-        } = message;
+        const {   id: { id }, from, body, timestamp,  } = message;
         if (mediaType === "image/jpeg" || mediaType === "image/png") {
-          // save user to Database
-          let user = await this.users.getUser(from);
-          if (!user) {
-            user = await this.users.createUser({
-              name: chatInfo.name,
-              phone: from,
-              platform: message.deviceType,
-              country: "N/A",
-            });
-          }
+         const userNumber = await contactInfo.getFormattedNumber();
+         const CountryCode = userNumber.split(" ")[0];
+         
+          let user = await this.users.createUser({
+            name: contactInfo.pushname || userNumber,
+            phone: userNumber,
+            platform: message.deviceType,
+            country: CountryCode,
+          });
           const mediaPath = path.join(
             process.cwd(),
             "public",
@@ -129,14 +130,12 @@ class WhatsApp {
           });
 
           fs.rmSync(mediaPath);
-
-          // save sticker
           this.stickers.create(user.id, timestamp, body);
         }
       }
     });
 
-    this.RegisterMessageCheck();
+    
   }
 
   private RegisterMessageCheck() {

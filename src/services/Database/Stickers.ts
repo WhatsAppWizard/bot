@@ -1,5 +1,5 @@
-import Database from "./index";
 import { Stickers } from "../../generated/prisma";
+import Database from "./index";
 
 class StickersService {
   async create(
@@ -11,7 +11,7 @@ class StickersService {
     return prisma.stickers.create({
       data: {
         userId,
-        sentAt,
+        sentAt : Number(sentAt),
         body,
       },
     });
