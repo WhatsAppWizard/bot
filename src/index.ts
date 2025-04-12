@@ -1,10 +1,12 @@
-import WhatsApp from "./services/WhatsApp";
-import app from "./services/Express";
+import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import app from "./services/Express";
+import QueueService from "./services/Queue";
+import WhatsApp from "./services/WhatsApp";
 
 async function main() {
-  
+  dotenv.config();
   const publicDir = path.join(process.cwd(), "public");
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
@@ -13,7 +15,7 @@ async function main() {
   const whatsapp = new WhatsApp();
   const io = app.get("io");
 
- 
+  QueueService.getInstance();
   whatsapp.setSocketIO(io);
 
   // Set up exit handlers
