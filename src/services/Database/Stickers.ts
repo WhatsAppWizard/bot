@@ -1,42 +1,43 @@
-import { Stickers } from "../../generated/prisma";
 import Database from "./index";
+import { PrismaClient } from "@prisma/client";
+import { Stickers } from "../../generated/prisma";
 
-class StickersService {
+class StickerRepository {
+  private prisma: PrismaClient;
+  constructor() {
+    this.prisma = Database.GetClient();
+  }
   async create(
     userId: string,
     sentAt: Number,
     body: string
   ): Promise<Stickers> {
-    const prisma = await Database.GetClient();
-    return prisma.stickers.create({
+    return this.prisma.stickers.create({
       data: {
         userId,
-        sentAt : Number(sentAt),
+        sentAt: Number(sentAt),
         body,
       },
     });
   }
 
   async getById(id: string): Promise<Stickers | null> {
-    const prisma = await Database.GetClient();
-    return prisma.stickers.findUnique({
+    return this.prisma.stickers.findUnique({
       where: { id },
     });
   }
 
   async getByUserId(userId: string): Promise<Stickers[]> {
-    const prisma = await Database.GetClient();
-    return prisma.stickers.findMany({
+    return this.prisma.stickers.findMany({
       where: { userId },
     });
   }
 
   async deleteByUserId(userId: string): Promise<{ count: number }> {
-    const prisma = await Database.GetClient();
-    return prisma.stickers.deleteMany({
+    return this.prisma.stickers.deleteMany({
       where: { userId },
     });
   }
 }
 
-export default StickersService;
+export default StickerRepository;

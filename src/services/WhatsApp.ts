@@ -1,52 +1,46 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
-import fs from "fs";
-import path from "path";
+import ConfigService from "./Config";
+import FileService from "./Files";
 import QRCode from "qr-image";
-import StickersService from "./Database/Stickers";
-import Users from "./Database/Users";
 import QueueService from "./Queue";
-import SocketHandler from "./SocketHandler";
+import SocketService from "./SocketHandler";
+import StickerRepository from "./Database/Stickers";
+import UserRepository from "./Database/Users";
 
 class WhatsApp {
   private client: Client;
   private qrCodePath: string;
-  private socketHandler: SocketHandler;
-  public isAuthenticated: boolean = false;
-  public unreadChats: number = 0;
+  private socketService: SocketService;
+
   public queueService: QueueService;
 
-  private users: Users;
-  private stickers: StickersService;
+  private users: UserRepository;
+  private stickers: StickerRepository;
+
+  public isAuthenticated: boolean = false;
+  public unreadChats: number = 0;
 
   constructor() {
     this.client = new Client({
-      puppeteer: {
-        headless: false,
-      },
+      puppeteer: ConfigService.getPuppeteerOptions(),
       authStrategy: new LocalAuth({
-        dataPath: process.env.NODE_ENV === "production" ? "BTA" : "DEV",
+        dataPath: ConfigService.getSessionPath(),
       }),
     });
 
-    // Ensure public directory exists
-    const publicDir = path.join(process.cwd(), "public");
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
-    }
+    ConfigService.ensurePublicDirectoryExists();
+    this.qrCodePath = ConfigService.getQrCodePath();
 
-    this.qrCodePath = path.join(publicDir, "qr-code.png");
-
-    // Initialize socket handler
-    this.socketHandler = new SocketHandler(this);
+    this.socketService = new SocketService(this);
     this.queueService = QueueService.getInstance();
 
-    this.users = new Users();
-    this.stickers = new StickersService();
+    this.users = new UserRepository();
+    this.stickers = new StickerRepository();
   }
 
   setSocketIO(io: any) {
-    this.socketHandler.initialize(io);
+    this.socketService.initialize(io);
   }
 
   async initialize() {
@@ -56,29 +50,25 @@ class WhatsApp {
   }
 
   private setupWhatsAppEventHandlers() {
-    // Handle authentication events
     this.client.on("authenticated", () => {
-      console.log("Client is authenticated!");
       this.isAuthenticated = true;
-      this.socketHandler.emitAuthStatus();
+      this.socketService.emitAuthStatus();
     });
 
     this.client.on("auth_failure", () => {
-      console.log("Authentication failed!");
       this.isAuthenticated = false;
-      this.socketHandler.emitAuthStatus();
+      this.socketService.emitAuthStatus();
     });
 
     this.client.on("disconnected", (reason) => {
       console.log("Client was disconnected", reason);
       this.isAuthenticated = false;
-      this.socketHandler.emitAuthStatus();
+      this.socketService.emitAuthStatus();
     });
 
     this.client.once("ready", () => {
-      console.log("Client is ready!");
       this.isAuthenticated = true;
-      this.socketHandler.emitAuthStatus();
+      this.socketService.emitAuthStatus();
       this.GetQRCode();
 
       // Set up message event handler
@@ -91,36 +81,35 @@ class WhatsApp {
     // Listen for new messages
     this.client.on("message", async (message) => {
       const chatInfo = await message.getChat();
-      if (chatInfo.isGroup) {
-        return; // We're not interested in group messages .
+      if (chatInfo.isGroup || chatInfo.isReadOnly) {
+        // Ignore group messages and read-only chats
+        return;
       }
       if (message.hasMedia) {
-
-
-
-
-        const media = await message.downloadMedia();
+        const { mimetype, data } = await message.downloadMedia();
         const contactInfo = await message.getContact();
 
-        const mediaType = media.mimetype;
-        const {   id: { id }, from, body, timestamp,  } = message;
-        if (mediaType === "image/jpeg" || mediaType === "image/png") {
-         const userNumber = await contactInfo.getFormattedNumber();
-         const CountryCode = userNumber.split(" ")[0];
-         
+        const { body, timestamp } = message;
+        if (mimetype === "image/jpeg" || mimetype === "image/png") {
+          
+          const userNumber = await contactInfo.getFormattedNumber();
+          const CountryCode = userNumber.split(" ")[0];
+
           let user = await this.users.createUser({
             name: contactInfo.pushname || userNumber,
             phone: userNumber,
             platform: message.deviceType,
             country: CountryCode,
           });
-          const mediaPath = path.join(
-            process.cwd(),
-            "public",
-            "media",
-            id + ".png"
+
+          this.stickers.create(user.id, timestamp, body);
+
+          
+          const mediaPath = ConfigService.getDownloadPath(
+            `${user.id}-${timestamp}.jpg`
           );
-          fs.writeFileSync(mediaPath, Buffer.from(media.data, "base64"));
+
+          await FileService.saveFile(mediaPath, Buffer.from(data, "base64"));
 
           // send media back to user as Sticker
           message.reply(MessageMedia.fromFilePath(mediaPath), "", {
@@ -129,13 +118,11 @@ class WhatsApp {
             stickerName: "WhatsApp Wizard v3.0",
           });
 
-          fs.rmSync(mediaPath);
-          this.stickers.create(user.id, timestamp, body);
+         await FileService.removeFile(mediaPath);
+          
         }
       }
     });
-
-    
   }
 
   private RegisterMessageCheck() {
@@ -155,7 +142,7 @@ class WhatsApp {
           // Update unread count if changed
           if (count !== this.unreadChats) {
             this.unreadChats = count;
-            this.socketHandler.emitUnreadCount();
+            this.socketService.emitUnreadCount();
           }
         } catch (error) {
           console.error("Error checking unread messages:", error);
@@ -165,14 +152,13 @@ class WhatsApp {
   }
 
   GetQRCode() {
-    this.client.on("qr", (qr) => {
-      const QR = QRCode.imageSync(qr, { type: "png" });
-      // Save QR code to file
-      fs.writeFileSync(this.qrCodePath, QR);
+    this.client.on("qr", async (qr) => {
+      const QR = QRCode.imageSync(qr, { type: "png" }) as Buffer;
+      await FileService.saveFile(this.qrCodePath, QR);
       console.log("QR Code saved to:", this.qrCodePath);
 
       // Emit event to all connected clients
-      this.socketHandler.emitQRUpdate();
+      this.socketService.emitQRUpdate();
     });
   }
 
@@ -183,15 +169,8 @@ class WhatsApp {
     };
   }
 
-  clearQRCodes() {
-    try {
-      // Check if QR code file exists
-      if (fs.existsSync(this.qrCodePath)) {
-        fs.unlinkSync(this.qrCodePath);
-      }
-    } catch (error) {
-      console.error("Error deleting QR code file:", error);
-    }
+  async clearQRCodes() {
+     FileService.removeFile(this.qrCodePath);
   }
 }
 

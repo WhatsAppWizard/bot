@@ -1,9 +1,9 @@
+import QueueService from "./services/Queue";
+import WhatsApp from "./services/WhatsApp";
+import app from "./services/Express";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import app from "./services/Express";
-import QueueService from "./services/Queue";
-import WhatsApp from "./services/WhatsApp";
 
 async function main() {
   dotenv.config();
@@ -29,10 +29,7 @@ async function main() {
   });
 }
 
-/**
- * Set up process exit handlers
- * @param whatsappService WhatsApp service instance
- */
+
 function setupExitHandlers(whatsappService: WhatsApp) {
   // Handle graceful shutdown
   process.on("SIGINT", () => cleanup(whatsappService));
@@ -52,11 +49,7 @@ function setupExitHandlers(whatsappService: WhatsApp) {
     process.exit(1);
   });
 }
-
-/**
- * Clean up resources before exiting
- * @param whatsappService WhatsApp service instance
- */
+ 
 function cleanup(whatsappService: WhatsApp) {
   console.log("Cleaning up...");
   whatsappService.clearQRCodes();

@@ -2,7 +2,7 @@ import Database from ".";
 import { User } from "../../generated/prisma";
 import { PrismaClient } from "../../generated/prisma/client";
 
-class Users {
+class UserRepository {
   private prisma: PrismaClient;
   constructor() {
     this.prisma = Database.GetClient();
@@ -57,4 +57,4 @@ class Users {
   }
 }
 
-export default Users;
+export default UserRepository;

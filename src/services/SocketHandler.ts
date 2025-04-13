@@ -2,7 +2,7 @@ import { Server, Socket } from "socket.io";
 
 import WhatsApp from "./WhatsApp";
 
-class SocketHandler {
+class SocketService {
   private io: Server | null = null;
   private whatsappService: WhatsApp;
 
@@ -82,4 +82,4 @@ class SocketHandler {
   }
 }
 
-export default SocketHandler; 
+export default SocketService; 
