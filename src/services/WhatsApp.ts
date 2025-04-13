@@ -4,6 +4,7 @@ import QRCode from "qr-image";
 import ConfigService from "./Config";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
+import { downloadService } from "./Download";
 import FileService from "./Files";
 import QueueService from "./Queue";
 import SocketService from "./SocketHandler";
@@ -85,11 +86,12 @@ class WhatsApp {
         // Ignore group messages and read-only chats
         return;
       }
+      const { body, timestamp } = message;
+
       if (message.hasMedia) {
         const { mimetype, data } = await message.downloadMedia();
         const contactInfo = await message.getContact();
 
-        const { body, timestamp } = message;
         if (mimetype === "image/jpeg" || mimetype === "image/png") {
           const userNumber = await contactInfo.getFormattedNumber();
           const CountryCode = userNumber.split(" ")[0];
@@ -116,6 +118,17 @@ class WhatsApp {
           });
 
           await FileService.removeFile(mediaPath);
+        }
+      }
+
+      if (body != null) {
+        // extract urls from the message body
+        const urls = body.match(/https?:\/\/[^\s]+/g);
+        
+        if (urls) {
+          downloadService
+            .TikTokVideoDownloader(urls[0])
+            .then(async (result) => {});
         }
       }
     });

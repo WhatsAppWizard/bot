@@ -23,12 +23,15 @@
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
+    "axios": "^1.8.4",
     "bullmq": "^5.48.1",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "prisma": "^6.6.0",
     "qr-image": "^3.2.0",
+    "ruhend-scraper": "^9.0.1",
     "socket.io": "^4.8.1",
     "whatsapp-web.js": "^1.27.0"
   }

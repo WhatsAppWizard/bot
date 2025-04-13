@@ -31,6 +31,20 @@ class ConfigService {
     return path.join(this.PublicPath, "qrcodes", "qr-code.png");
   }
 
+  public static getDownloadPaths(platform?: string) {
+    if (!platform) {
+      platform = "default";
+    }
+    if (!fs.existsSync(path.join(this.PublicPath, "media", platform))) {
+      fs.mkdirSync(path.join(this.PublicPath, "media", platform), { recursive: true });
+      
+    }
+    return {
+      video: path.join(this.PublicPath, "media", platform || ""),
+      image: path.join(this.PublicPath, "media", platform || ""),
+    };
+  }
+
   public static getDownloadPath(downloadName: string) {
     return path.join(this.PublicPath, "media", `${downloadName}.jpg`);
   }

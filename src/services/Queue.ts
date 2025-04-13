@@ -16,7 +16,7 @@ class QueueService extends EventEmitter {
     if (!QueueService.instance) {
       QueueService.instance = new QueueService();
       QueueService.instance.RegisterListeners();
-      console.log("QueueService instance created");
+      
     }
     return QueueService.instance;
   }
