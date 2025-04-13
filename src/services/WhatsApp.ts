@@ -1,12 +1,12 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
-import ConfigService from "./Config";
-import FileService from "./Files";
 import QRCode from "qr-image";
-import QueueService from "./Queue";
-import SocketService from "./SocketHandler";
+import ConfigService from "./Config";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
+import FileService from "./Files";
+import QueueService from "./Queue";
+import SocketService from "./SocketHandler";
 
 class WhatsApp {
   private client: Client;
@@ -91,11 +91,10 @@ class WhatsApp {
 
         const { body, timestamp } = message;
         if (mimetype === "image/jpeg" || mimetype === "image/png") {
-          
           const userNumber = await contactInfo.getFormattedNumber();
           const CountryCode = userNumber.split(" ")[0];
 
-          let user = await this.users.createUser({
+          let user = await this.users.createOrUpdateUser({
             name: contactInfo.pushname || userNumber,
             phone: userNumber,
             platform: message.deviceType,
@@ -104,22 +103,19 @@ class WhatsApp {
 
           this.stickers.create(user.id, timestamp, body);
 
-          
           const mediaPath = ConfigService.getDownloadPath(
             `${user.id}-${timestamp}.jpg`
           );
 
           await FileService.saveFile(mediaPath, Buffer.from(data, "base64"));
 
-          // send media back to user as Sticker
           message.reply(MessageMedia.fromFilePath(mediaPath), "", {
             sendMediaAsSticker: true,
             stickerAuthor: "wwz.gitnasr.com",
             stickerName: "WhatsApp Wizard v3.0",
           });
 
-         await FileService.removeFile(mediaPath);
-          
+          await FileService.removeFile(mediaPath);
         }
       }
     });
@@ -170,7 +166,7 @@ class WhatsApp {
   }
 
   async clearQRCodes() {
-     FileService.removeFile(this.qrCodePath);
+    FileService.removeFile(this.qrCodePath);
   }
 }
 

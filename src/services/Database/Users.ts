@@ -1,6 +1,7 @@
 import Database from ".";
 import { User } from "../../generated/prisma";
 import { PrismaClient } from "../../generated/prisma/client";
+import { ICreateUser } from '../../types/User';
 
 class UserRepository {
   private prisma: PrismaClient;
@@ -17,23 +18,14 @@ class UserRepository {
     return user;
   }
 
-  private async getUserById(userId: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-    return user;
-  }
 
-  public async createUser(user: Partial<User>): Promise<User> {
-    const incoming_user = user as User;
-    const isExisted = await this.getUserByPhone(incoming_user.phone);
+  public async createOrUpdateUser(user: ICreateUser): Promise<User> {
+    const isExisted = await this.getUserByPhone(user.phone);
     if (isExisted) {
       return await this.updateUser(isExisted.id, user);
     }
     return await this.prisma.user.create({
-      data: incoming_user,
+      data: user,
     });
   }
 
@@ -47,7 +39,6 @@ class UserRepository {
     });
   }
   public async getUser(phone: string): Promise<User | null> {
-    
     const user = await this.prisma.user.findFirst({
       where: {
         phone,
