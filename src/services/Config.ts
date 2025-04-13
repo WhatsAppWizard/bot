@@ -32,7 +32,7 @@ class ConfigService {
   }
 
   public static getDownloadPath(downloadName: string) {
-    return path.join(this.PublicPath, "media", downloadName, ".jpg");
+    return path.join(this.PublicPath, "media", `${downloadName}.jpg`);
   }
 }
 
