@@ -2,6 +2,8 @@ import { Queue, Worker } from "bullmq";
 
 import { EventEmitter } from "events";
 import IORedis from "ioredis";
+import DownloadRepository from "./Database/Downloads";
+import { downloadService } from "./Download";
 
 class QueueService extends EventEmitter {
   private redis: IORedis;
@@ -9,14 +11,12 @@ class QueueService extends EventEmitter {
   private DownloaderQueue!: Queue;
   private DownloaderWorker!: Worker;
 
-  
   private static instance: QueueService;
 
   public static getInstance(): QueueService {
     if (!QueueService.instance) {
       QueueService.instance = new QueueService();
       QueueService.instance.RegisterListeners();
-      
     }
     return QueueService.instance;
   }
@@ -29,8 +29,6 @@ class QueueService extends EventEmitter {
     this.setupDownloaderQueue();
   }
 
-
-
   private setupDownloaderQueue() {
     this.DownloaderQueue = new Queue("whatsapp-bot-downloader-queue", {
       connection: this.redis,
@@ -38,7 +36,22 @@ class QueueService extends EventEmitter {
     this.DownloaderWorker = new Worker(
       "whatsapp-bot-downloader-queue",
       async (job) => {
-        console.log(job.data);
+        const DownloadRepo = new DownloadRepository();
+        const { data } = job;
+        const { url, userId, timestamp } = data;
+
+        const download = await downloadService.Download(url);
+        const DownloadInDatabase = await DownloadRepo.create(
+          url,
+          download[0].platform,
+          userId,
+          timestamp
+        );
+
+        return {
+          download,
+          downloadId: DownloadInDatabase.id,
+        };
       },
       {
         connection: this.redis,
@@ -46,7 +59,6 @@ class QueueService extends EventEmitter {
       }
     );
   }
-
 
   public async addJobToDownloaderQueue(name: string, job: any) {
     await this.DownloaderQueue.add(name, job);
@@ -57,16 +69,16 @@ class QueueService extends EventEmitter {
   }
 
   private RegisterListeners() {
-    // this.StickersWorker.on("completed", (jobId, result) => {
-    //   console.log(`Job ${jobId} completed with result:`, result);
-    //   this.emit('stickersJobCompleted', { jobId, result });
-    // });
-    // this.StickersWorker.on("failed", (jobId, error) => {
-    //   console.log(`Job ${jobId} failed with error ${error}`);
-    // });
-    // this.StickersWorker.on("progress", (jobId, progress) => {
-    //   console.log(`Job ${jobId} progress ${progress}`);
-    // });
+    this.DownloaderWorker.on("completed", (jobId, result) => {
+      console.log(`Job ${jobId} completed with result:`, result);
+      this.emit('stickersJobCompleted', { jobId, result });
+    });
+    this.DownloaderWorker.on("failed", (jobId, error) => {
+      console.log(`Job ${jobId} failed with error ${error}`);
+    });
+    this.DownloaderWorker.on("progress", (jobId, progress) => {
+      console.log(`Job ${jobId} progress ${progress}`);
+    });
   }
 }
 

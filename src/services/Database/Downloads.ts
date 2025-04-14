@@ -18,9 +18,9 @@ class DownloadRepository {
         where: { url },
       });
     }
-    async create(url: string, platform: string, userId:string, downloadUrl: string) {
+    async create(url: string, platform: string, userId:string, sentAt: string) {
       return await this.prisma.downloads.create({
-        data: { urlFromUser: url, platform, userId,downloadUrl},
+        data: { urlFromUser: url, platform, userId,sentAt},
       });
     }   
 

@@ -40,7 +40,6 @@ model Downloads {
   user        User     @relation(fields: [userId], references: [id])
   platform    String
   urlFromUser String
-  downloadUrl String
   sentAt      BigInt
   status      DownloadStatus     @default(PENDING)
   createdAt   DateTime @default(now())

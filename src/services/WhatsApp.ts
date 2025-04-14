@@ -4,7 +4,6 @@ import QRCode from "qr-image";
 import ConfigService from "./Config";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
-import { downloadService } from "./Download";
 import FileService from "./Files";
 import QueueService from "./Queue";
 import SocketService from "./SocketHandler";
@@ -126,28 +125,29 @@ class WhatsApp {
           const urls = body.match(/https?:\/\/[^\s]+/g);
 
           if (urls) {
-            const download_result = await downloadService.Download(urls[0]);
-
-            if (!download_result) {
-              message.reply("Download failed. Please try again.");
-              return;
-            }
-
-            if (Array.isArray(download_result)) {
-              for (const d in download_result) {
-                message.reply(
-                  MessageMedia.fromFilePath(download_result[d].path)
-                );
-                await FileService.removeFile(download_result[d].path);
-              }
-            }
+          this.queueService.addJobToDownloaderQueue(`${timestamp}-${userNumber}`, {
+            url: urls[0],
+            message,
+            userId: user.id,
+            timestamp
+          })
           }
-        }
-      } catch (error) {}
-    });
-  }
 
+        }
+      } catch (error) {
+      console.log("🚀 ~ WhatsApp ~ this.client.on ~ error:", error)
+      }
+    });
+   
+  }
+  private onQueueMessage() { 
+    this.queueService.on("stickersJobCompleted", async (data) => {
+      console.log("Job completed:", data.jobId, data.result);
+      
+    })
+  }
   private RegisterMessageCheck() {
+    this.onQueueMessage();
     setInterval(async () => {
       if (this.isAuthenticated) {
         try {
