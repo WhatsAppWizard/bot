@@ -1,8 +1,8 @@
 class TikTokError extends Error {
-    constructor(message: string) {
+    constructor(message: string = "Unknown error") {
         super(message);
         this.name = "TikTokError";
-        this.message = "Failed to download TikTok media: " + message;
+        this.message =  message;
     }
 }
 

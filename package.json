@@ -31,7 +31,6 @@
     "express": "^5.1.0",
     "prisma": "^6.6.0",
     "qr-image": "^3.2.0",
-    "ruhend-scraper": "^9.0.1",
     "socket.io": "^4.8.1",
     "whatsapp-web.js": "^1.27.0"
   }

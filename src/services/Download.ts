@@ -1,96 +1,79 @@
 import axios from "axios";
-//@ts-ignore
-import { ttdl } from "ruhend-scraper";
-import InstagramDownloadError from "../errors/InstagramDownloadError";
+import InstagramError from "../errors/InstagramError";
 import TikTokError from "../errors/TikTokError";
 import { SnapSaver } from "../SnapSaver/Download";
 import ConfigService from "./Config";
 import FileService from "./Files";
-
+interface IDownloadedOnDisk {
+  path: string;
+  type: "video" | "image";
+}
 class DownloadService {
   constructor() {}
-
-  public async TikTokVideoDownloader(url: string): Promise<string[]> {
-    try {
-      let { title, username, published, video, cover, music } = await ttdl(url);
-
-      let DirectURLs = [video];
-      if (!DirectURLs.length) {
-        throw new TikTokError("No direct URLs found in the response.");
-      }
-      const ReturnPaths: string[] = [];
-      for (const DirectURL of DirectURLs) {
-        if (!DirectURL) {
-          throw new TikTokError("Direct URL is undefined or null");
-        }
-        const path = await this.DownloadOnDisk(DirectURL, "TikTok");
-        if (!path) {
-          throw new TikTokError("Failed to download media");
-        }
-        ReturnPaths.push(path);
-      }
-      return ReturnPaths;
-    } catch (error) {
-      console.error("Download error:", error);
-      throw error;
-    }
+  public async TikTokVideoDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+    return this.genericDownloader(url, "TikTok", TikTokError);
   }
-  private async DownloadOnDisk(url: string, platform: string) {
-    const res = await axios.get(url, {
-      responseType: "arraybuffer",
-    });
-    const buffer = Buffer.from(res.data, "binary");
+  
+  public async InstagramDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+    return this.genericDownloader(url, "Instagram", InstagramError);
+  }
+  
 
+  private async DownloadOnDisk(
+    url: string,
+    platform: string
+  ): Promise<IDownloadedOnDisk> {
+    const res = await axios.get(url, { responseType: "arraybuffer" });
+    const buffer = Buffer.from(res.data, "binary");
     const mimeType = res.headers["content-type"];
 
-    let DownloadPaths = ConfigService.getDownloadPaths(platform);
+    const DownloadPaths = ConfigService.getDownloadPaths(platform);
+    const timestamp = Date.now();
 
+    let extension = "";
+    let type: "video" | "image";
     if (mimeType.startsWith("video/")) {
-      const rootPath = DownloadPaths.video;
-      const extension = ".mp4";
-      const fileName = `${Date.now()}${extension}`;
-      const filePath = `${rootPath}/${fileName}`;
-      await FileService.saveFile(filePath, buffer);
-      return filePath;
+      extension = ".mp4";
+      type = "video";
+    } else if (mimeType.startsWith("image/")) {
+      const extFromMime = mimeType.split("/")[1]; // e.g., image/png → png
+      extension = `.${extFromMime || "jpg"}`;
+      type = "image";
+    } else {
+      throw new Error(`Unsupported media type: ${mimeType}`);
     }
 
-    if (mimeType.startsWith("image/")) {
-      const rootPath = DownloadPaths.image;
-      const extension = ".jpg";
-      const fileName = `${Date.now()}${extension}`;
-      const filePath = `${rootPath}/${fileName}`;
-      await FileService.saveFile(filePath, buffer);
-      return filePath;
-    }
+    const fileName = `${timestamp}${extension}`;
+    const filePath = `${DownloadPaths[type]}/${fileName}`;
+    await FileService.saveFile(filePath, buffer);
+    return { path: filePath, type };
   }
-  public async InstagramDownloader(url: string): Promise<string[]> {
-    try {
-      const download = await SnapSaver(
-        "https://www.instagram.com/p/C51YHfWJwHK/"
-      );
-      if (!download.success) {
-        throw new InstagramDownloadError(download.message || "Unknown error");
-      }
 
-      const media = download.data?.media || [];
-      const mediaUrls = media.map((item) => item.url).filter(Boolean);
-      const ReturnPaths: string[] = [];
+  private async genericDownloader(url: string, platform: "TikTok" | "Instagram", errorClass: any): Promise<IDownloadedOnDisk[]> {
+    try {
+      const result = await SnapSaver(url);
+      if (!result.success) throw new errorClass(result.message || "Unknown error");
+  
+      const mediaUrls = (result.data?.media || [])
+        .map(item => item.url)
+        .filter((url): url is string => Boolean(url));
+  
+      const SavedFiles: IDownloadedOnDisk[] = [];
+  
       for (const mediaUrl of mediaUrls) {
-        if (!mediaUrl) {
-          throw new InstagramDownloadError("Media URL is undefined or null");
-        }
-        const path = await this.DownloadOnDisk(mediaUrl, "Instagram");
-        if (!path) {
-          throw new InstagramDownloadError("Failed to download media");
-        }
-        ReturnPaths.push(path);
+        const path = await this.DownloadOnDisk(mediaUrl, platform);
+        if (!path) throw new errorClass("Failed to download media");
+        SavedFiles.push(path);
       }
-      return ReturnPaths;
+  
+      return SavedFiles;
     } catch (error) {
-      console.error("Download error:", error);
+      console.error(`${platform} Download error:`, error);
       throw error;
     }
   }
+  
 }
 
 export const downloadService = new DownloadService();
+// Test code removed. Use a dedicated test file for testing.
