@@ -10,3 +10,10 @@ export const fixThumbnail = (url: string) => {
   const toReplace = "https://snapinsta.app/photo.php?photo=";
   return url.includes(toReplace) ? decodeURIComponent(url.replace(toReplace, "")) : url;
 };
+
+export const DetectPlatformFromRegex = (url: string) => {
+  if (facebookRegex.test(url)) return "Facebook";
+  if (instagramRegex.test(url)) return "Instagram";
+  if (tiktokRegex.test(url)) return "TikTok";
+  return null;
+}

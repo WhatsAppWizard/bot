@@ -124,11 +124,23 @@ class WhatsApp {
       if (body != null) {
         // extract urls from the message body
         const urls = body.match(/https?:\/\/[^\s]+/g);
-        
+
         if (urls) {
-          downloadService
-            .TikTokVideoDownloader(urls[0])
-            .then(async (result) => {});
+          await chatInfo.sendStateTyping();
+          const download_result = await downloadService.Download(urls[0]);
+
+          if (!download_result) {
+            message.reply("Download failed. Please try again.");
+            return;
+          }
+
+          // if download_result is an array, it means multiple files were downloaded, so we need to send them all as one message
+          if (Array.isArray(download_result)) {
+            for (const d in download_result) {
+              message.reply(MessageMedia.fromFilePath(download_result[d].path));
+
+            }
+          }
         }
       }
     });

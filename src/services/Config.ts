@@ -1,9 +1,10 @@
+//@ts-ignore
+import chromePaths from "chrome-paths";
 import fs from "fs";
 import path from "path";
-
 class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");
-  public static getPuppeteerOptions() {
+  public static  getPuppeteerOptions() {
     return {
       headless: false,
       args: [
@@ -13,6 +14,7 @@ class ConfigService {
         "--disable-web-security",
         "--disable-features=IsolateOrigins,site-per-process",
       ],
+      executablePath: chromePaths.chrome,
     };
   }
 

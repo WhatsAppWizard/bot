@@ -3,24 +3,63 @@ import { FacebookError } from "../errors/FacebookError";
 import InstagramError from "../errors/InstagramError";
 import TikTokError from "../errors/TikTokError";
 import { SnapSaver } from "../SnapSaver/Download";
+import { DetectPlatformFromRegex } from "../SnapSaver/utils";
 import { IDownloadedOnDisk } from "../types/Download";
 import ConfigService from "./Config";
 import FileService from "./Files";
 
 class DownloadService {
   constructor() {}
-  public async TikTokVideoDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+  private async TikTokVideoDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     return this.genericDownloader(url, "TikTok", TikTokError);
   }
   
-  public async InstagramDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+  private async InstagramDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     return this.genericDownloader(url, "Instagram", InstagramError);
   }
 
-  public async FacebookDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+  private async FacebookDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     return this.genericDownloader(url, "Facebook", FacebookError);
   }
   
+  private detectPlatform(url: string) : string {
+    const platform = DetectPlatformFromRegex(url);
+
+    if (!platform) {
+      throw new Error("Invalid URL or unsupported platform.");
+    }
+    return platform;
+
+  } 
+
+  public async Download(url:string): Promise<IDownloadedOnDisk[]> { 
+    // 1. Detect the platform of url
+
+    const platform = this.detectPlatform(url);
+    // 2. Call the appropriate downloader based on the platform
+    let downloader: (url: string) => Promise<IDownloadedOnDisk[]>;
+    switch (platform) {
+      case "TikTok":
+        downloader = this.TikTokVideoDownloader.bind(this);
+        break;
+      case "Instagram":
+        downloader = this.InstagramDownloader.bind(this);
+        break;
+      case "Facebook":
+        downloader = this.FacebookDownloader.bind(this);
+        break;
+      default:
+        throw new Error("Unsupported platform.");
+    }
+    // 3. Call the downloader and return the result
+    try {
+      const result = await downloader(url);
+      return result;
+    } catch (error) {
+      console.error("Download error:", error);
+      throw error;
+    }
+  }
 
   private async DownloadOnDisk(
     url: string,

@@ -26,6 +26,7 @@
     "axios": "^1.8.4",
     "bullmq": "^5.48.1",
     "cheerio": "^1.0.0",
+    "chrome-paths": "^1.0.1",
     "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
