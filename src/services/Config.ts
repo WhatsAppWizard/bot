@@ -39,10 +39,7 @@ class ConfigService {
       fs.mkdirSync(path.join(this.PublicPath, "media", platform), { recursive: true });
       
     }
-    return {
-      video: path.join(this.PublicPath, "media", platform || ""),
-      image: path.join(this.PublicPath, "media", platform || ""),
-    };
+    return path.join(this.PublicPath, "media", platform );
   }
 
   public static getDownloadPath(downloadName: string) {

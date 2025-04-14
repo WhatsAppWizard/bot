@@ -3,12 +3,10 @@ import { FacebookError } from "../errors/FacebookError";
 import InstagramError from "../errors/InstagramError";
 import TikTokError from "../errors/TikTokError";
 import { SnapSaver } from "../SnapSaver/Download";
+import { IDownloadedOnDisk } from "../types/Download";
 import ConfigService from "./Config";
 import FileService from "./Files";
-interface IDownloadedOnDisk {
-  path: string;
-  type: "video" | "image";
-}
+
 class DownloadService {
   constructor() {}
   public async TikTokVideoDownloader(url: string): Promise<IDownloadedOnDisk[]> {
@@ -32,7 +30,7 @@ class DownloadService {
     const buffer = Buffer.from(res.data, "binary");
     const mimeType = res.headers["content-type"];
 
-    const DownloadPaths = ConfigService.getDownloadPaths(platform);
+    const DownloadPath = ConfigService.getDownloadPaths(platform);
     const timestamp = Date.now();
 
     let extension = "";
@@ -49,7 +47,7 @@ class DownloadService {
     }
 
     const fileName = `${timestamp}${extension}`;
-    const filePath = `${DownloadPaths[type]}/${fileName}`;
+    const filePath = `${DownloadPath}/${fileName}`;
     await FileService.saveFile(filePath, buffer);
     return { path: filePath, type };
   }
