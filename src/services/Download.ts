@@ -88,7 +88,7 @@ class DownloadService {
     const fileName = `${timestamp}${extension}`;
     const filePath = `${DownloadPath}/${fileName}`;
     await FileService.saveFile(filePath, buffer);
-    return { path: filePath, type };
+    return { path: filePath, type, platform };
   }
 
   private async genericDownloader(url: string, platform: "TikTok" | "Instagram" | "Facebook", errorClass: any): Promise<IDownloadedOnDisk[]> {

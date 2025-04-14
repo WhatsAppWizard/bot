@@ -81,68 +81,69 @@ class WhatsApp {
   private setupMessageHandler() {
     // Listen for new messages
     this.client.on("message", async (message) => {
-      const chatInfo = await message.getChat();
-      if (chatInfo.isGroup || chatInfo.isReadOnly) {
-        // Ignore group messages and read-only chats
-        return;
-      }
-      const { body, timestamp } = message;
-
-      if (message.hasMedia) {
-        const { mimetype, data } = await message.downloadMedia();
-        const contactInfo = await message.getContact();
-
-        if (mimetype === "image/jpeg" || mimetype === "image/png") {
-          const userNumber = await contactInfo.getFormattedNumber();
-          const CountryCode = userNumber.split(" ")[0];
-
-          let user = await this.users.createOrUpdateUser({
-            name: contactInfo.pushname || userNumber,
-            phone: userNumber,
-            platform: message.deviceType,
-            country: CountryCode,
-          });
-
-          this.stickers.create(user.id, timestamp, body);
-
-          const mediaPath = ConfigService.getDownloadPath(
-            `${user.id}-${timestamp}.jpg`
-          );
-
-          await FileService.saveFile(mediaPath, Buffer.from(data, "base64"));
-
-          message.reply(MessageMedia.fromFilePath(mediaPath), "", {
-            sendMediaAsSticker: true,
-            stickerAuthor: "wwz.gitnasr.com",
-            stickerName: "WhatsApp Wizard v3.0",
-          });
-
-          await FileService.removeFile(mediaPath);
+      try {
+        const chatInfo = await message.getChat();
+        if (chatInfo.isGroup || chatInfo.isReadOnly) {
+          // Ignore group messages and read-only chats
+          return;
         }
-      }
+        const { body, timestamp, hasMedia } = message;
+        const contactInfo = await message.getContact();
+        const userNumber = await contactInfo.getFormattedNumber();
+        const CountryCode = userNumber.split(" ")[0];
 
-      if (body != null) {
-        // extract urls from the message body
-        const urls = body.match(/https?:\/\/[^\s]+/g);
+        let user = await this.users.createOrUpdateUser({
+          name: contactInfo.pushname || userNumber,
+          phone: userNumber,
+          platform: message.deviceType,
+          country: CountryCode,
+        });
 
-        if (urls) {
-          await chatInfo.sendStateTyping();
-          const download_result = await downloadService.Download(urls[0]);
+        if (hasMedia) {
+          const { mimetype, data } = await message.downloadMedia();
 
-          if (!download_result) {
-            message.reply("Download failed. Please try again.");
-            return;
+          if (mimetype === "image/jpeg" || mimetype === "image/png") {
+            this.stickers.create(user.id, timestamp, body);
+
+            const mediaPath = ConfigService.getDownloadPath(
+              `${user.id}-${timestamp}.jpg`
+            );
+
+            await FileService.saveFile(mediaPath, Buffer.from(data, "base64"));
+
+            message.reply(MessageMedia.fromFilePath(mediaPath), "", {
+              sendMediaAsSticker: true,
+              stickerAuthor: "wwz.gitnasr.com",
+              stickerName: "WhatsApp Wizard v3.0",
+            });
+
+            await FileService.removeFile(mediaPath);
           }
+        }
 
-          // if download_result is an array, it means multiple files were downloaded, so we need to send them all as one message
-          if (Array.isArray(download_result)) {
-            for (const d in download_result) {
-              message.reply(MessageMedia.fromFilePath(download_result[d].path));
+        if (body != null) {
+          // extract urls from the message body
+          const urls = body.match(/https?:\/\/[^\s]+/g);
 
+          if (urls) {
+            const download_result = await downloadService.Download(urls[0]);
+
+            if (!download_result) {
+              message.reply("Download failed. Please try again.");
+              return;
+            }
+
+            if (Array.isArray(download_result)) {
+              for (const d in download_result) {
+                message.reply(
+                  MessageMedia.fromFilePath(download_result[d].path)
+                );
+                await FileService.removeFile(download_result[d].path);
+              }
             }
           }
         }
-      }
+      } catch (error) {}
     });
   }
 
