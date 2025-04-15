@@ -1,7 +1,10 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
 import QRCode from "qr-image";
+import { DownloadStatus } from "../generated/prisma";
+import { DownloadEvents, DownloadJob } from "../types/Download";
 import ConfigService from "./Config";
+import DownloadRepository from "./Database/Downloads";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
 import FileService from "./Files";
@@ -17,6 +20,7 @@ class WhatsApp {
 
   private users: UserRepository;
   private stickers: StickerRepository;
+  private downloads: DownloadRepository;
 
   public isAuthenticated: boolean = false;
   public unreadChats: number = 0;
@@ -37,6 +41,7 @@ class WhatsApp {
 
     this.users = new UserRepository();
     this.stickers = new StickerRepository();
+    this.downloads= new DownloadRepository();
   }
 
   setSocketIO(io: any) {
@@ -86,16 +91,16 @@ class WhatsApp {
           // Ignore group messages and read-only chats
           return;
         }
-        const { body, timestamp, hasMedia } = message;
+        const { body, timestamp, hasMedia, links, reply } = message;
         const contactInfo = await message.getContact();
         const userNumber = await contactInfo.getFormattedNumber();
-        const CountryCode = userNumber.split(" ")[0];
+        const countryCode = userNumber.split(" ")[0];
 
         let user = await this.users.createOrUpdateUser({
           name: contactInfo.pushname || userNumber,
           phone: userNumber,
           platform: message.deviceType,
-          country: CountryCode,
+          country: countryCode,
         });
 
         if (hasMedia) {
@@ -103,26 +108,19 @@ class WhatsApp {
 
           if (mimetype === "image/jpeg" || mimetype === "image/png") {
             this.stickers.create(user.id, timestamp, body);
+            const media = new MessageMedia(mimetype, data);
 
-            const mediaPath = ConfigService.getDownloadPath(
-              `${user.id}-${timestamp}.jpg`
-            );
-
-            await FileService.saveFile(mediaPath, Buffer.from(data, "base64"));
-
-            message.reply(MessageMedia.fromFilePath(mediaPath), "", {
+            message.reply(media, "", {
               sendMediaAsSticker: true,
               stickerAuthor: "wwz.gitnasr.com",
               stickerName: "WhatsApp Wizard v3.0",
             });
 
-            await FileService.removeFile(mediaPath);
           }
         }
 
-        if (body != null) {
-          // extract urls from the message body
-          const urls = body.match(/https?:\/\/[^\s]+/g);
+        if (links.length > 0) {
+          const urls = links.map((urls) => urls.link);
 
           if (urls) {
           this.queueService.addJobToDownloaderQueue(`${timestamp}-${userNumber}`, {
@@ -141,9 +139,46 @@ class WhatsApp {
    
   }
   private onQueueMessage() { 
-    this.queueService.on("stickersJobCompleted", async (data) => {
-      console.log("Job completed:", data.jobId, data.result);
-      
+    this.queueService.on(DownloadEvents.DownloadCompleted, async (job: DownloadJob) => {
+      try {
+        const { download, downloadId } =  job.returnvalue;
+        const { message } = job.data;
+  
+        // For now, we Support only one file at a time.
+        // We Added this to support multiple files in the future.
+        for (let index = 0; index < download.length; index++) {
+          const element = download[index];
+          const { path } = element;
+  
+        
+  
+          // Make MessageMedia from filePath
+          const media =  MessageMedia.fromFilePath(path);
+  
+  
+            // We're forced to get the message id and reply though client not Message object itself.
+        // since the BullMQ worker converts all data to string and we lose the Message object functions.
+          const userMessageOnWhatsApp = await this.client.getMessageById(message.id._serialized);
+  
+          userMessageOnWhatsApp.reply(media);
+
+          await FileService.removeFile(path);
+          
+         
+  
+  
+          
+        }
+        await this.downloads.updateStatusById(downloadId,DownloadStatus.SENT);
+      } catch (error) {
+        console.error("Error in onQueueMessage:", error);
+
+      }
+     
+
+
+    
+          
     })
   }
   private RegisterMessageCheck() {
@@ -179,7 +214,6 @@ class WhatsApp {
       await FileService.saveFile(this.qrCodePath, QR);
       console.log("QR Code saved to:", this.qrCodePath);
 
-      // Emit event to all connected clients
       this.socketService.emitQRUpdate();
     });
   }

@@ -1,7 +1,8 @@
-import { Queue, Worker } from "bullmq";
+import { Job, Queue, Worker } from "bullmq";
 
 import { EventEmitter } from "events";
 import IORedis from "ioredis";
+import { DownloadEvents, DownloadJob, IDownloadJob, IDownloadJobResponse } from "../types/Download";
 import DownloadRepository from "./Database/Downloads";
 import { downloadService } from "./Download";
 
@@ -16,7 +17,7 @@ class QueueService extends EventEmitter {
   public static getInstance(): QueueService {
     if (!QueueService.instance) {
       QueueService.instance = new QueueService();
-      QueueService.instance.RegisterListeners();
+      QueueService.instance.queueEvents();
     }
     return QueueService.instance;
   }
@@ -30,10 +31,10 @@ class QueueService extends EventEmitter {
   }
 
   private setupDownloaderQueue() {
-    this.DownloaderQueue = new Queue("whatsapp-bot-downloader-queue", {
+    this.DownloaderQueue = new Queue<IDownloadJob, IDownloadJobResponse>("whatsapp-bot-downloader-queue", {
       connection: this.redis,
     });
-    this.DownloaderWorker = new Worker(
+    this.DownloaderWorker = new Worker<IDownloadJob, IDownloadJobResponse>(
       "whatsapp-bot-downloader-queue",
       async (job) => {
         const DownloadRepo = new DownloadRepository();
@@ -60,7 +61,7 @@ class QueueService extends EventEmitter {
     );
   }
 
-  public async addJobToDownloaderQueue(name: string, job: any) {
+  public async addJobToDownloaderQueue(name: string, job: IDownloadJob) {
     await this.DownloaderQueue.add(name, job);
   }
 
@@ -68,16 +69,16 @@ class QueueService extends EventEmitter {
     return await this.DownloaderQueue.count();
   }
 
-  private RegisterListeners() {
-    this.DownloaderWorker.on("completed", (jobId, result) => {
-      console.log(`Job ${jobId} completed with result:`, result);
-      this.emit('stickersJobCompleted', { jobId, result });
+  private queueEvents() {
+    this.DownloaderWorker.on("completed", (job) => {
+
+      this.emit(DownloadEvents.DownloadCompleted, job as DownloadJob);
     });
     this.DownloaderWorker.on("failed", (jobId, error) => {
-      console.log(`Job ${jobId} failed with error ${error}`);
+      this.emit(DownloadEvents.DownloadFailed, { jobId, error });
     });
     this.DownloaderWorker.on("progress", (jobId, progress) => {
-      console.log(`Job ${jobId} progress ${progress}`);
+      this.emit(DownloadEvents.DownloadProgress, { jobId, progress });
     });
   }
 }
