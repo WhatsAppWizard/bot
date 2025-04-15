@@ -5,6 +5,7 @@ import { DownloadStatus } from "../generated/prisma";
 import { DownloadEvents, DownloadJob } from "../types/Download";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
+import ErrorsRepository from "./Database/Errors";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
 import FileService from "./Files";
@@ -142,7 +143,8 @@ class WhatsApp {
 
         }
       } catch (error) {
-      console.log("🚀 ~ WhatsApp ~ this.client.on ~ error:", error)
+        console.log(error, "Error in message handler");
+        
       }
     });
    
@@ -197,9 +199,13 @@ class WhatsApp {
         const { message } = job.data;
         const userMessageOnWhatsApp = await this.client.getMessageById(message.id._serialized);
         userMessageOnWhatsApp.reply("Believe me, I tried my best to download this file, but I couldn't. 🫠😔 \n\nPlease try again later");
-      } catch (error) {
-        console.error("Error in onQueueMessage:", error);
-      }
+     
+        const ErrorRepo = new ErrorsRepository();
+        ErrorRepo.createError(error.toString(), job.data.downloadId);
+
+      } catch (errorFromFunction) {
+        
+        }
 
     })
   }

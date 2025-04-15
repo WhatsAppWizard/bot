@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../generated/prisma";
 import Database from ".";
 import { Downloads, DownloadStatus } from "../../generated/prisma";
 
@@ -14,8 +14,8 @@ class DownloadRepository {
       });
     }
     async findByUrl(url: string) {
-      return await this.prisma.downloads.findUnique({
-        where: { url },
+      return await this.prisma.downloads.findMany({
+        where: { urlFromUser: url },
       });
     }
     async create(url: string, platform: string, userId:string, sentAt: number) {

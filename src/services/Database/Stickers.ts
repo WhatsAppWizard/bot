@@ -1,6 +1,5 @@
+import { PrismaClient, Stickers } from "../../generated/prisma";
 import Database from "./index";
-import { PrismaClient } from "@prisma/client";
-import { Stickers } from "../../generated/prisma";
 
 class StickerRepository {
   private prisma: PrismaClient;
