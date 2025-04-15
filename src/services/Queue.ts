@@ -97,13 +97,6 @@ class QueueService extends EventEmitter {
       this.emit(DownloadEvents.DownloadCompleted, job as DownloadJob);
     });
     this.downloaderWorker.on("failed", (job, error) => {
-
-      const DownloadRepo = new DownloadRepository();
-      if (!job) return;
-      console.log("🚀 ~ QueueService ~ this.DownloaderWorker.on ~ job:", job)
-
-      DownloadRepo.updateStatusById(job.data.downloadId, DownloadStatus.FAILED);
-
       this.emit(DownloadEvents.DownloadFailed, job, error);
     });
     this.downloaderWorker.on("progress", (jobId, progress) => {
