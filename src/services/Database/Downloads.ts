@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import Database from ".";
-import { DownloadStatus } from "../../generated/prisma";
+import { Downloads, DownloadStatus } from "../../generated/prisma";
 
 class DownloadRepository { 
     private prisma: PrismaClient;
@@ -28,6 +28,13 @@ class DownloadRepository {
         return await this.prisma.downloads.update({
             where: { id },
             data: { status },
+        });
+    }
+
+    async updateDownloadById(id: string, update: Partial<Downloads>) {
+        return await this.prisma.downloads.update({
+            where: { id },
+            data: update,
         });
     }
    

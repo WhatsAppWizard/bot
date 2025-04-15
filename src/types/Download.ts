@@ -16,8 +16,7 @@ export enum DownloadEvents {
 export interface IDownloadJob {
   url: string;
   message: Message;
-  userId: string;
-  timestamp: number;
+  downloadId: string;
 }
 
 export interface IDownloadJobResponse {

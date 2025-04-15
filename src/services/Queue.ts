@@ -1,7 +1,8 @@
-import { Job, Queue, Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 
 import { EventEmitter } from "events";
 import IORedis from "ioredis";
+import { DownloadStatus } from "../generated/prisma";
 import { DownloadEvents, DownloadJob, IDownloadJob, IDownloadJobResponse } from "../types/Download";
 import DownloadRepository from "./Database/Downloads";
 import { downloadService } from "./Download";
@@ -9,8 +10,8 @@ import { downloadService } from "./Download";
 class QueueService extends EventEmitter {
   private redis: IORedis;
 
-  private DownloaderQueue!: Queue;
-  private DownloaderWorker!: Worker;
+  private downloaderQueue!: Queue;
+  private downloaderWorker!: Worker;
 
   private static instance: QueueService;
 
@@ -26,33 +27,54 @@ class QueueService extends EventEmitter {
     super();
     this.redis = new IORedis(process.env.REDIS_URL || "", {
       maxRetriesPerRequest: null,
+
     });
     this.setupDownloaderQueue();
   }
 
   private setupDownloaderQueue() {
-    this.DownloaderQueue = new Queue<IDownloadJob, IDownloadJobResponse>("whatsapp-bot-downloader-queue", {
+    this.downloaderQueue = new Queue<IDownloadJob, IDownloadJobResponse>("whatsapp-bot-downloader-queue", {
       connection: this.redis,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
     });
-    this.DownloaderWorker = new Worker<IDownloadJob, IDownloadJobResponse>(
+    this.downloaderWorker = new Worker<IDownloadJob, IDownloadJobResponse>(
       "whatsapp-bot-downloader-queue",
       async (job) => {
         const DownloadRepo = new DownloadRepository();
-        const { data } = job;
-        const { url, userId, timestamp } = data;
 
+        try  {
+        const { data } = job;
+        const { url,  downloadId } = data;
+
+        await DownloadRepo.updateStatusById(downloadId, DownloadStatus.DOWNLOADING);
         const download = await downloadService.Download(url);
-        const DownloadInDatabase = await DownloadRepo.create(
-          url,
-          download[0].platform,
-          userId,
-          timestamp
-        );
+
+        if (!download) {
+          await DownloadRepo.updateStatusById(downloadId, DownloadStatus.FAILED);
+         throw new Error("Download failed, No DownloadLinks Returned");
+        }
+        
+
+        await DownloadRepo.updateDownloadById(downloadId, {
+          status: DownloadStatus.COMPLETED,
+          platform: download[0].platform,
+          
+        });
+
 
         return {
           download,
-          downloadId: DownloadInDatabase.id,
+          downloadId,
         };
+        } catch (error) {
+          await DownloadRepo.updateStatusById(job.data.downloadId, DownloadStatus.FAILED);
+
+          console.error("Error in downloader worker:", error);
+          throw error;
+        }
       },
       {
         connection: this.redis,
@@ -62,22 +84,29 @@ class QueueService extends EventEmitter {
   }
 
   public async addJobToDownloaderQueue(name: string, job: IDownloadJob) {
-    await this.DownloaderQueue.add(name, job);
+    await this.downloaderQueue.add(name, job);
   }
 
   public async getDownloaderQueueCount(): Promise<number> {
-    return await this.DownloaderQueue.count();
+    return await this.downloaderQueue.count();
   }
 
   private queueEvents() {
-    this.DownloaderWorker.on("completed", (job) => {
+    this.downloaderWorker.on("completed", (job) => {
 
       this.emit(DownloadEvents.DownloadCompleted, job as DownloadJob);
     });
-    this.DownloaderWorker.on("failed", (jobId, error) => {
-      this.emit(DownloadEvents.DownloadFailed, { jobId, error });
+    this.downloaderWorker.on("failed", (job, error) => {
+
+      const DownloadRepo = new DownloadRepository();
+      if (!job) return;
+      console.log("🚀 ~ QueueService ~ this.DownloaderWorker.on ~ job:", job)
+
+      DownloadRepo.updateStatusById(job.data.downloadId, DownloadStatus.FAILED);
+
+      this.emit(DownloadEvents.DownloadFailed, job, error);
     });
-    this.DownloaderWorker.on("progress", (jobId, progress) => {
+    this.downloaderWorker.on("progress", (jobId, progress) => {
       this.emit(DownloadEvents.DownloadProgress, { jobId, progress });
     });
   }

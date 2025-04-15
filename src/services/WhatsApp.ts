@@ -123,11 +123,20 @@ class WhatsApp {
           const urls = links.map((urls) => urls.link);
 
           if (urls) {
+            const url  = urls[0];
+            const downloadRepo = new DownloadRepository();
+
+            const DownloadInDatabase = await downloadRepo.create(
+              url,
+              "UNKNOWN",
+              user.id,
+              timestamp
+            );
+          
           this.queueService.addJobToDownloaderQueue(`${timestamp}-${userNumber}`, {
-            url: urls[0],
+            url: urls[0],   // For now, we Support only one file at a time.
+            downloadId: DownloadInDatabase.id,
             message,
-            userId: user.id,
-            timestamp
           })
           }
 
@@ -144,8 +153,7 @@ class WhatsApp {
         const { download, downloadId } =  job.returnvalue;
         const { message } = job.data;
   
-        // For now, we Support only one file at a time.
-        // We Added this to support multiple files in the future.
+        
         for (let index = 0; index < download.length; index++) {
           const element = download[index];
           const { path } = element;
@@ -179,6 +187,20 @@ class WhatsApp {
 
     
           
+    })
+
+
+    this.queueService.on(DownloadEvents.DownloadFailed, async (job: DownloadJob, error:any) => {
+
+
+      try {
+        const { message } = job.data;
+        const userMessageOnWhatsApp = await this.client.getMessageById(message.id._serialized);
+        userMessageOnWhatsApp.reply("Believe me, I tried my best to download this file, but I couldn't. 🫠😔 \n\nPlease try again later");
+      } catch (error) {
+        console.error("Error in onQueueMessage:", error);
+      }
+
     })
   }
   private RegisterMessageCheck() {
