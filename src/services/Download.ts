@@ -1,12 +1,12 @@
-import axios from "axios";
-import { FacebookError } from "../errors/FacebookError";
-import InstagramError from "../errors/InstagramError";
-import TikTokError from "../errors/TikTokError";
-import { SnapSaver } from "../SnapSaver/Download";
-import { DetectPlatformFromRegex } from "../SnapSaver/utils";
-import { IDownloadedOnDisk } from "../types/Download";
 import ConfigService from "./Config";
+import { DetectPlatformFromRegex } from "../SnapSaver/utils";
+import { FacebookError } from "../errors/FacebookError";
 import FileService from "./Files";
+import { IDownloadedOnDisk } from "../types/Download";
+import InstagramError from "../errors/InstagramError";
+import { SnapSaver } from "../SnapSaver/Download";
+import TikTokError from "../errors/TikTokError";
+import axios from "axios";
 
 class DownloadService {
   constructor() {}
@@ -20,6 +20,27 @@ class DownloadService {
 
   private async FacebookDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     return this.genericDownloader(url, "Facebook", FacebookError);
+  }
+
+  private async YouTubeDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+      const yt = await this.Youtube(url);
+      const file = await this.DownloadOnDisk(yt, "YouTube");
+      return [file];
+  }
+
+
+
+  private async Youtube(url: string): Promise<string> {
+      const endpoint = `https://nayan-video-downloader.vercel.app/ytdown?url=${encodeURIComponent(url)}`;
+      const res = await axios.get(endpoint);
+
+      if (res.status !== 200) {
+        throw new Error("Failed to fetch video URL.");
+      }
+      const videoUrl = res.data.data.video;
+
+      return videoUrl;
+
   }
   
   private detectPlatform(url: string) : string {
@@ -47,6 +68,9 @@ class DownloadService {
         break;
       case "Facebook":
         downloader = this.FacebookDownloader.bind(this);
+        break;
+      case "YouTube":
+        downloader = this.YouTubeDownloader.bind(this);
         break;
       default:
         throw new Error("Unsupported platform.");
