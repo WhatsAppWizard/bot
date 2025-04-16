@@ -1,12 +1,12 @@
 import ConfigService from "./Config";
-import { detectPlatformFromURL } from "../SnapSaver/utils";
 import { FacebookError } from "../errors/FacebookError";
 import FileService from "./Files";
 import { IDownloadedOnDisk } from "../types/Download";
 import InstagramError from "../errors/InstagramError";
-import { SnapSaver } from "../SnapSaver/Download";
+import { SnapSaver } from "snapsaver-downloader";
 import TikTokError from "../errors/TikTokError";
 import axios from "axios";
+import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
 
 class DownloadService {
   constructor() {}
