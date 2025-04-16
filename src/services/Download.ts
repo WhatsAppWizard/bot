@@ -1,5 +1,5 @@
 import ConfigService from "./Config";
-import { DetectPlatformFromRegex } from "../SnapSaver/utils";
+import { detectPlatformFromURL } from "../SnapSaver/utils";
 import { FacebookError } from "../errors/FacebookError";
 import FileService from "./Files";
 import { IDownloadedOnDisk } from "../types/Download";
@@ -62,7 +62,7 @@ class DownloadService {
   }
   
   private detectPlatform(url: string) : string {
-    const platform = DetectPlatformFromRegex(url);
+    const platform = detectPlatformFromURL(url);
 
     if (!platform) {
       throw new Error("Invalid URL or unsupported platform.");
