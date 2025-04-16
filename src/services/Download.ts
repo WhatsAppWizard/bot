@@ -28,6 +28,24 @@ class DownloadService {
       return [file];
   }
 
+  private async TwitterDownloader(url: string): Promise<IDownloadedOnDisk[]> {
+    const videoUrl = await this.Twitter(url);
+    const file = await this.DownloadOnDisk(videoUrl, "Twitter");
+    return [file];
+  }
+
+
+  private async Twitter(url:string): Promise<string> {
+    const endpoint = `https://nayan-video-downloader.vercel.app/twitterdown?url=${encodeURIComponent(url)}`;
+    const res = await axios.get(endpoint);
+
+    if (res.status !== 200) {
+      throw new Error("Failed to fetch video URL.");
+    }
+    const videoUrl:string = res.data.data.SD || res.data.data.HD 
+
+    return videoUrl;
+  }
 
 
   private async Youtube(url: string): Promise<string> {
@@ -71,6 +89,9 @@ class DownloadService {
         break;
       case "YouTube":
         downloader = this.YouTubeDownloader.bind(this);
+        break;
+      case "Twitter":
+        downloader = this.TwitterDownloader.bind(this);
         break;
       default:
         throw new Error("Unsupported platform.");
