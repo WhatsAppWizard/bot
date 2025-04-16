@@ -42,7 +42,10 @@ class DownloadService {
     if (res.status !== 200) {
       throw new Error("Failed to fetch video URL.");
     }
-    const videoUrl:string = res.data.data.SD || res.data.data.HD 
+    const videoUrl:string = res.data.data.SD || res.data.data.HD;
+    if (!videoUrl) {
+      throw new Error("No video URL found in the response. Both SD and HD are undefined.");
+    }
 
     return videoUrl;
   }
