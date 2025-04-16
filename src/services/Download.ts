@@ -1,12 +1,12 @@
 import ConfigService from "./Config";
-import { DetectPlatformFromRegex } from "../SnapSaver/utils";
 import { FacebookError } from "../errors/FacebookError";
 import FileService from "./Files";
 import { IDownloadedOnDisk } from "../types/Download";
 import InstagramError from "../errors/InstagramError";
-import { SnapSaver } from "../SnapSaver/Download";
+import { SnapSaver } from "snapsaver-downloader";
 import TikTokError from "../errors/TikTokError";
 import axios from "axios";
+import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
 
 class DownloadService {
   constructor() {}
@@ -65,7 +65,7 @@ class DownloadService {
   }
   
   private detectPlatform(url: string) : string {
-    const platform = DetectPlatformFromRegex(url);
+    const platform = detectPlatformFromURL(url);
 
     if (!platform) {
       throw new Error("Invalid URL or unsupported platform.");
