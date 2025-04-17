@@ -28,7 +28,7 @@ class ConfigService {
     const base = this.PublicPath;
     const media = path.join(base, "media");
     const qrcodes = path.join(base, "qrcodes");
-  
+
     try {
       if (!fs.existsSync(base)) {
         fs.mkdirSync(base, { recursive: true });
@@ -43,7 +43,7 @@ class ConfigService {
       console.error("Error creating public directories:", err);
     }
   }
-  
+
   public static getQrCodePath() {
     return path.join(this.PublicPath, "qrcodes", "qr-code.png");
   }
@@ -53,10 +53,11 @@ class ConfigService {
       platform = "default";
     }
     if (!fs.existsSync(path.join(this.PublicPath, "media", platform))) {
-      fs.mkdirSync(path.join(this.PublicPath, "media", platform), { recursive: true });
-      
+      fs.mkdirSync(path.join(this.PublicPath, "media", platform), {
+        recursive: true,
+      });
     }
-    return path.join(this.PublicPath, "media", platform );
+    return path.join(this.PublicPath, "media", platform);
   }
 
   public static getDownloadPath(downloadName: string) {
@@ -67,8 +68,15 @@ class ConfigService {
     return process.env.REDIS_URL || "redis://localhost:6379";
   }
 
-  public static getHardcodedRatelimit(){ 
+  public static getHardcodedRatelimit() {
     return 5;
+  }
+
+  public static getPostHogApiKey() {
+    return process.env.POSTHOG_API_KEY;
+  }
+  public static getPostHogHost() {
+    return process.env.POSTHOG_HOST;
   }
 }
 
