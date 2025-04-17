@@ -24,7 +24,7 @@ datasource db {
 model User {
   id        String      @id @default(uuid())
   name      String
-  phone     String
+  phone     String @unique
   country   String
   platform  String
   stickers  Stickers[]
