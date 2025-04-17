@@ -30,6 +30,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "ioredis": "^5.6.1",
+    "posthog-node": "^4.11.7",
     "prisma": "^6.6.0",
     "qr-image": "^3.2.0",
     "snapsaver-downloader": "^1.0.0",
