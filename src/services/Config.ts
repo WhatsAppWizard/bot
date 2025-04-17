@@ -6,7 +6,7 @@ import path from "path";
 
 class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");
-  public static  getPuppeteerOptions() {
+  public static getPuppeteerOptions() {
     return {
       headless: false,
       args: [
@@ -61,6 +61,14 @@ class ConfigService {
 
   public static getDownloadPath(downloadName: string) {
     return path.join(this.PublicPath, "media", `${downloadName}.jpg`);
+  }
+
+  public static getRedis() {
+    return process.env.REDIS_URL || "redis://localhost:6379";
+  }
+
+  public static getHardcodedRatelimit(){ 
+    return 5;
   }
 }
 
