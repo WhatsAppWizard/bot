@@ -28,12 +28,11 @@
     "cheerio": "^1.0.0",
     "chrome-paths": "^1.0.1",
     "dotenv": "^16.5.0",
-    "ejs": "^3.1.10",
     "express": "^5.1.0",
     "prisma": "^6.6.0",
     "qr-image": "^3.2.0",
     "snapsaver-downloader": "^1.0.0",
-    "socket.io": "^4.8.1",
+    "telegraf": "^4.16.3",
     "whatsapp-web.js": "^1.27.0"
   }
 }
