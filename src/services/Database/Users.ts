@@ -19,13 +19,11 @@ class UserRepository {
   }
 
 
-  public async createOrUpdateUser(user: ICreateUser): Promise<User> {
-    const isExisted = await this.getUserByPhone(user.phone);
-    if (isExisted) {
-      return await this.updateUser(isExisted.id, user);
-    }
-    return await this.prisma.user.create({
-      data: user,
+  public async createOrUpdateUser(userData: ICreateUser): Promise<User> {
+    return await this.prisma.user.upsert({
+      where: { phone: userData.phone },
+      update: userData,
+      create: userData
     });
   }
 
