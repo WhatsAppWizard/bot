@@ -1,9 +1,10 @@
 // Telegram Service is Used by System Admin to Manage the bot.
 // It's more reliable for managing the bot itself.
 
+import { EventEmitter } from "stream";
 import { Telegraf } from "telegraf";
 
-class TelegramService {
+class TelegramService extends EventEmitter {
   private bot = new Telegraf(process.env.BOT_TOKEN!);
   private chatId = process.env.CHAT_ID!;
   private _QrCodeMessageId: number | null = null;
@@ -17,6 +18,17 @@ class TelegramService {
   }
 
   private constructor() {
+    super();
+    this.bot.command("broadcast", (ctx) => {
+      const message = ctx.message.text.split(" ").slice(1).join(" ");
+      this.emit("broadcast-requested", message);
+      ctx.reply("Broadcast message received. Processing...");
+    });
+    this.bot.command("unhandled", (ctx) => {
+      // Planned: Handle unhandled chats
+      this.emit("handle-unhandled-chats");
+      ctx.reply("Handling unhandled chats...");
+    });
     this.bot.launch();
     this.bot.telegram.sendMessage(
       this.chatId,
