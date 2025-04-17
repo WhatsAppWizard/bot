@@ -1,6 +1,5 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
-import {TelegramServiceType, telegramService} from "./Telegram";
 
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
@@ -10,6 +9,7 @@ import FileService from "./Files";
 import QRCode from "qr-image";
 import QueueService from "./Queue";
 import StickerRepository from "./Database/Stickers";
+import TelegramService from "./Telegram";
 import UserRepository from "./Database/Users";
 
 class WhatsApp {
@@ -18,7 +18,7 @@ class WhatsApp {
   
 
   public queueService: QueueService;
-  private telegramService: TelegramServiceType ;
+  private telegramService: TelegramService ;
 
   private users: UserRepository;
   private stickers: StickerRepository;
@@ -44,7 +44,7 @@ class WhatsApp {
     this.stickers = new StickerRepository();
     this.downloads= new DownloadRepository();
 
-    this.telegramService = telegramService;
+    this.telegramService = TelegramService.getInstance();
   }
 
 
