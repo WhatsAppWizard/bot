@@ -1,10 +1,7 @@
 // Telegram Service is Used by System Admin to Manage the bot.
-// Its more reiable for management the bot itself.
+// It's more reliable for managing the bot itself.
 
 import { Telegraf } from "telegraf";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 class TelegramService {
   private bot = new Telegraf(process.env.BOT_TOKEN!);
@@ -80,4 +77,5 @@ class TelegramService {
     }
 }
 
-export default TelegramService;
+export  const telegramService =  new TelegramService();
+export type TelegramServiceType = typeof telegramService;

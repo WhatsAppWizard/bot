@@ -3,6 +3,7 @@ import app from "./services/Express";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import {telegramService} from "./services/Telegram";
 
 async function main() {
   dotenv.config();
@@ -24,25 +25,25 @@ async function main() {
 
 function setupExitHandlers() {
   // Handle graceful shutdown
-  process.on("SIGINT", () => console.log("CRASHED!"));
-  process.on("SIGTERM", () => console.log("CRASHED!"));
+  process.on("SIGINT", () => {
+    telegramService.sendMessage("Server is shutting down gracefully...");
+  });
+  process.on("SIGTERM", () => {
+    telegramService.sendMessage("MAYDAY: SERVER CRASHED...");
+  });
 
   // Handle uncaught exceptions
   process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
-    process.exit(1);
+    
   });
 
   // Handle unhandled promise rejections
   process.on("unhandledRejection", (reason, promise) => {
     console.error("Unhandled Rejection at:", promise, "reason:", reason);
-    process.exit(1);
+
   });
 }
 
-function cleanup(whatsappService: WhatsApp) {
-  console.log("Cleaning up...");
-  process.exit(0);
-}
 
 main();
