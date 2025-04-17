@@ -1,16 +1,16 @@
-import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
+import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
-import {TelegramServiceType, telegramService} from "./Telegram";
 
+import QRCode from "qr-image";
+import { DownloadStatus } from "../generated/prisma";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
-import { DownloadStatus } from "../generated/prisma";
 import ErrorsRepository from "./Database/Errors";
-import FileService from "./Files";
-import QRCode from "qr-image";
-import QueueService from "./Queue";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
+import FileService from "./Files";
+import QueueService from "./Queue";
+import TelegramService from "./Telegram";
 
 class WhatsApp {
   private client: Client;
@@ -18,7 +18,7 @@ class WhatsApp {
   
 
   public queueService: QueueService;
-  private telegramService: TelegramServiceType ;
+  private telegramService: TelegramService ;
 
   private users: UserRepository;
   private stickers: StickerRepository;
@@ -44,7 +44,7 @@ class WhatsApp {
     this.stickers = new StickerRepository();
     this.downloads= new DownloadRepository();
 
-    this.telegramService = telegramService;
+    this.telegramService = TelegramService.getInstance();
   }
 
 
@@ -227,30 +227,70 @@ class WhatsApp {
 
     })
   }
-  private RegisterMessageCheck() {
-    this.onQueueMessage();
-    setInterval(async () => {
-      if (this.isAuthenticated) {
-        try {
-          // Get all chats
-          const chats = await this.client.getChats();
 
-          let count = 0;
-          for (const chat of chats) {
-            if (chat.unreadCount > 0) {
-              count += chat.unreadCount;
-            }
+  private onTelegramMessage() {
+    this.telegramService.on("broadcast-requested", async (message) => {
+      try {
+        console.log("Broadcast message received:", message);
+        let count = 0;
+        const chats = await this.client.getChats();
+        for (const chat of chats) {
+          count++;
+          if (!chat.isGroup) {
+            // await chat.sendMessage(message);
           }
+        }
+        console.log(`Broadcast message sent to ${count} chats.`);
+        this.telegramService.sendMessage(`Broadcast message sent to ${count} chats.`);
+      } catch (error) {
+        console.error("Error sending broadcast message:", error);
+      }
+    });
 
-          // Update unread count if changed
-          if (count !== this.unreadChats) {
-            this.unreadChats = count;
-          }
-        } catch (error) {
-          console.error("Error checking unread messages:", error);
+ 
+  }
+
+  private async getUnreadChats() {
+    try {
+      const HashMapOfNumbersAndUnreadMessages: Map<string, Message[]> = new Map<string, Message[]>();
+      // Get all chats
+      const chats = await this.client.getChats();
+
+      let count = 0;
+      for (const chat of chats) {
+        if (chat.unreadCount > 0) {
+          
+          // get the unread messages to handle them
+          const messages = (await chat.fetchMessages({ limit: Infinity, })).reverse().slice(0, chat.unreadCount);
+
+          HashMapOfNumbersAndUnreadMessages.set(chat.id._serialized, messages);
+
+
+
+          count += chat.unreadCount;
         }
       }
-    }, 5000);
+
+      // Update unread count if changed
+      if (count !== this.unreadChats) {
+        this.unreadChats = count;
+      }
+
+      return HashMapOfNumbersAndUnreadMessages;
+    } catch (error) {
+      console.error("Error checking unread messages:", error);
+    }
+  }
+
+
+  private RegisterMessageCheck() {
+    this.onQueueMessage();
+    this.onTelegramMessage();
+    setInterval(async () => {
+      if (this.isAuthenticated) {
+      this.getUnreadChats()
+      }
+    }, 15000);
   }
 
 
@@ -264,6 +304,7 @@ class WhatsApp {
 
   async clearQRCodes() {
   await FileService.removeFile(this.qrCodePath);
+}
 }
 
 export default WhatsApp;

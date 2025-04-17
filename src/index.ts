@@ -1,12 +1,16 @@
+import TelegramService from "./services/Telegram";
 import WhatsApp from "./services/WhatsApp";
 import app from "./services/Express";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import {telegramService} from "./services/Telegram";
+
+dotenv.config();
+
+
+const telegramService = TelegramService.getInstance();
 
 async function main() {
-  dotenv.config();
   const publicDir = path.join(process.cwd(), "public");
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
