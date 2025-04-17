@@ -10,6 +10,7 @@ import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
 import FileService from "./Files";
 import QueueService from "./Queue";
+import RateLimiterService from "./Ratelimiter";
 import TelegramService from "./Telegram";
 
 class WhatsApp {
@@ -19,6 +20,7 @@ class WhatsApp {
 
   public queueService: QueueService;
   private telegramService: TelegramService ;
+  private rateLimiterService: RateLimiterService;
 
   private users: UserRepository;
   private stickers: StickerRepository;
@@ -34,6 +36,8 @@ class WhatsApp {
         dataPath: ConfigService.getSessionPath(),
       }),
     });
+
+    this.rateLimiterService = new RateLimiterService();
 
     ConfigService.ensurePublicDirectoryExists();
     this.qrCodePath = ConfigService.getQrCodePath();
@@ -143,6 +147,12 @@ class WhatsApp {
         }
 
         if (links.length > 0) {
+          // Check if the user is rate limited
+          const isRateLimited = await this.rateLimiterService.isRatedLimited(userNumber);
+          if (isRateLimited) {
+            message.reply("To save our resources, Please wait a moment before sending another request. R409");
+            return;
+          }
           const urls = links.map((urls) => urls.link);
 
           if (urls) {
@@ -286,6 +296,7 @@ class WhatsApp {
   private RegisterMessageCheck() {
     this.onQueueMessage();
     this.onTelegramMessage();
+    this.getUnreadChats();
     setInterval(async () => {
       if (this.isAuthenticated) {
       this.getUnreadChats()
