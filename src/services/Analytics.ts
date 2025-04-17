@@ -16,8 +16,7 @@ class AnalyticsService {
     this.client = new PostHog(apiKey, {
       host,
       flushInterval: 10000, // Flush events every 10 seconds
-      flushAt: 5, // Flush when 20 events are queued
-    });
+      flushAt: 5, // Flush when 5 events are queued
   }
 
   trackEvent(
