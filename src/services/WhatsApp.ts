@@ -265,5 +265,6 @@ class WhatsApp {
   async clearQRCodes() {
   await FileService.removeFile(this.qrCodePath);
 }
+}
 
 export default WhatsApp;
