@@ -1,7 +1,9 @@
 //@ts-ignore
+
 import chromePaths from "chrome-paths";
 import fs from "fs";
 import path from "path";
+
 class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");
   public static  getPuppeteerOptions() {
@@ -23,12 +25,25 @@ class ConfigService {
   }
 
   public static ensurePublicDirectoryExists() {
-    if (!fs.existsSync(this.PublicPath)) {
-      fs.mkdirSync(this.PublicPath, { recursive: true });
-      fs.mkdirSync(path.join(this.PublicPath, "media"), { recursive: true });
-      fs.mkdirSync(path.join(this.PublicPath, "qrcodes"), { recursive: true });
+    const base = this.PublicPath;
+    const media = path.join(base, "media");
+    const qrcodes = path.join(base, "qrcodes");
+  
+    try {
+      if (!fs.existsSync(base)) {
+        fs.mkdirSync(base, { recursive: true });
+      }
+      if (!fs.existsSync(media)) {
+        fs.mkdirSync(media, { recursive: true });
+      }
+      if (!fs.existsSync(qrcodes)) {
+        fs.mkdirSync(qrcodes, { recursive: true });
+      }
+    } catch (err) {
+      console.error("Error creating public directories:", err);
     }
   }
+  
   public static getQrCodePath() {
     return path.join(this.PublicPath, "qrcodes", "qr-code.png");
   }

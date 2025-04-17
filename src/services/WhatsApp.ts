@@ -1,23 +1,24 @@
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
-
-import QRCode from "qr-image";
-import { DownloadStatus } from "../generated/prisma";
 import { DownloadEvents, DownloadJob } from "../types/Download";
+import {TelegramServiceType, telegramService} from "./Telegram";
+
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
+import { DownloadStatus } from "../generated/prisma";
 import ErrorsRepository from "./Database/Errors";
+import FileService from "./Files";
+import QRCode from "qr-image";
+import QueueService from "./Queue";
 import StickerRepository from "./Database/Stickers";
 import UserRepository from "./Database/Users";
-import FileService from "./Files";
-import QueueService from "./Queue";
-import SocketService from "./SocketHandler";
 
 class WhatsApp {
   private client: Client;
   private qrCodePath: string;
-  private socketService: SocketService;
+  
 
   public queueService: QueueService;
+  private telegramService: TelegramServiceType ;
 
   private users: UserRepository;
   private stickers: StickerRepository;
@@ -37,17 +38,15 @@ class WhatsApp {
     ConfigService.ensurePublicDirectoryExists();
     this.qrCodePath = ConfigService.getQrCodePath();
 
-    this.socketService = new SocketService(this);
     this.queueService = QueueService.getInstance();
 
     this.users = new UserRepository();
     this.stickers = new StickerRepository();
     this.downloads= new DownloadRepository();
+
+    this.telegramService = telegramService;
   }
 
-  setSocketIO(io: any) {
-    this.socketService.initialize(io);
-  }
 
   async initialize() {
     await this.client.initialize();
@@ -56,30 +55,53 @@ class WhatsApp {
   }
 
   private setupWhatsAppEventHandlers() {
+   
     this.client.on("authenticated", () => {
       this.isAuthenticated = true;
-      this.socketService.emitAuthStatus();
+      this.telegramService.sendMessage("WhatsApp is authenticated and ready to go!");
     });
 
     this.client.on("auth_failure", () => {
       this.isAuthenticated = false;
-      this.socketService.emitAuthStatus();
+      this.telegramService.sendMessage("WhatsApp authentication failed. Please re-scan the QR code.");
+    
+      
     });
 
     this.client.on("disconnected", (reason) => {
       console.log("Client was disconnected", reason);
       this.isAuthenticated = false;
-      this.socketService.emitAuthStatus();
+      this.telegramService.sendMessage("WhatsApp client was disconnected. Please re-scan the QR code.");
     });
 
     this.client.once("ready", () => {
       this.isAuthenticated = true;
-      this.socketService.emitAuthStatus();
-      this.GetQRCode();
+      this.telegramService.sendMessage("WhatsApp client is ready!");
+
+      if (this.telegramService.QrCodeMessageId) {
+        // delete the message
+        this.telegramService.deleteMessage(this.telegramService.QrCodeMessageId);
+        this.telegramService.QrCodeMessageId = null;
+        this.clearQRCodes();
+      }
 
       // Set up message event handler
       this.setupMessageHandler();
       this.RegisterMessageCheck();
+    });
+
+    this.client.on("qr", async (qr) => {
+      const QR: Buffer = QRCode.imageSync(qr, { type: "png" }) as Buffer;
+      await FileService.saveFile(this.qrCodePath, QR);
+   
+
+      if (this.telegramService.QrCodeMessageId){
+        await this.telegramService.updateQRCode(this.qrCodePath, this.telegramService.QrCodeMessageId);
+      }
+      else {
+        this.telegramService.QrCodeMessageId = await this.telegramService.sendQRcode(this.qrCodePath);
+      }
+      
     });
   }
 
@@ -92,7 +114,7 @@ class WhatsApp {
           // Ignore group messages and read-only chats
           return;
         }
-        const { body, timestamp, hasMedia, links, reply } = message;
+        const { body, timestamp, hasMedia, links } = message;
         const contactInfo = await message.getContact();
         const userNumber = await contactInfo.getFormattedNumber();
         const countryCode = userNumber.split(" ")[0];
@@ -166,8 +188,8 @@ class WhatsApp {
           const media =  MessageMedia.fromFilePath(path);
   
   
-            // We're forced to get the message id and reply though client not Message object itself.
-        // since the BullMQ worker converts all data to string and we lose the Message object functions.
+          // We're forced to get the message id and reply though client not Message object itself.
+          // since the BullMQ worker converts all data to string and we lose the Message object functions.
           const userMessageOnWhatsApp = await this.client.getMessageById(message.id._serialized);
   
           userMessageOnWhatsApp.reply(media);
@@ -184,11 +206,7 @@ class WhatsApp {
         console.error("Error in onQueueMessage:", error);
 
       }
-     
-
-
-    
-          
+      
     })
 
 
@@ -227,7 +245,6 @@ class WhatsApp {
           // Update unread count if changed
           if (count !== this.unreadChats) {
             this.unreadChats = count;
-            this.socketService.emitUnreadCount();
           }
         } catch (error) {
           console.error("Error checking unread messages:", error);
@@ -236,15 +253,7 @@ class WhatsApp {
     }, 5000);
   }
 
-  GetQRCode() {
-    this.client.on("qr", async (qr) => {
-      const QR = QRCode.imageSync(qr, { type: "png" }) as Buffer;
-      await FileService.saveFile(this.qrCodePath, QR);
-      console.log("QR Code saved to:", this.qrCodePath);
 
-      this.socketService.emitQRUpdate();
-    });
-  }
 
   getClientStats() {
     return {
@@ -254,8 +263,7 @@ class WhatsApp {
   }
 
   async clearQRCodes() {
-    FileService.removeFile(this.qrCodePath);
-  }
+  await FileService.removeFile(this.qrCodePath);
 }
 
 export default WhatsApp;

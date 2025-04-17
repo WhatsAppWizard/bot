@@ -1,9 +1,9 @@
-import QueueService from "./services/Queue";
 import WhatsApp from "./services/WhatsApp";
 import app from "./services/Express";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import {telegramService} from "./services/Telegram";
 
 async function main() {
   dotenv.config();
@@ -13,47 +13,37 @@ async function main() {
   }
 
   const whatsapp = new WhatsApp();
-  const io = app.get("io");
-
-  QueueService.getInstance();
-  whatsapp.setSocketIO(io);
 
   // Set up exit handlers
-  setupExitHandlers(whatsapp);
+  setupExitHandlers();
 
   // Make WhatsApp instance accessible to routes
   app.set("whatsapp", whatsapp);
 
-  whatsapp.initialize().then(() => {
-    whatsapp.GetQRCode();
-  });
+  await whatsapp.initialize();
 }
 
-
-function setupExitHandlers(whatsappService: WhatsApp) {
+function setupExitHandlers() {
   // Handle graceful shutdown
-  process.on("SIGINT", () => cleanup(whatsappService));
-  process.on("SIGTERM", () => cleanup(whatsappService));
+  process.on("SIGINT", () => {
+    telegramService.sendMessage("Server is shutting down gracefully...");
+  });
+  process.on("SIGTERM", () => {
+    telegramService.sendMessage("MAYDAY: SERVER CRASHED...");
+  });
 
   // Handle uncaught exceptions
   process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
-    cleanup(whatsappService);
-    process.exit(1);
+    
   });
 
   // Handle unhandled promise rejections
   process.on("unhandledRejection", (reason, promise) => {
     console.error("Unhandled Rejection at:", promise, "reason:", reason);
-    cleanup(whatsappService);
-    process.exit(1);
+
   });
 }
- 
-function cleanup(whatsappService: WhatsApp) {
-  console.log("Cleaning up...");
-  whatsappService.clearQRCodes();
-  process.exit(0);
-}
+
 
 main();
