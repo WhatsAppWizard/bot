@@ -149,7 +149,35 @@ class WhatsApp {
       await user.block();
     });
   }
+  private async setupBotCommands(message: Message) {
 
+    const command = message.body.toLowerCase().trim();
+
+    const commands = [
+      "hi whatsapp wizard",
+      "hi",
+      "hello",
+      "hey",
+      "whatsapp wizard",
+      "wwz",
+      "wwz bot",
+      "wwz bot help",
+      ".",
+      "help",
+      "commands",
+      "start",
+      "stickers"
+    ]
+
+    if (commands.includes(command)) {
+      message.reply(`
+        Hi there! I'm WhatsApp Wizard.
+        Now you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\n
+        Additionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`);
+    }
+
+   
+  }
   private setupMessageHandler() {
     // Listen for new messages
     this.client.on("message", async (message) => {
@@ -159,6 +187,7 @@ class WhatsApp {
           // Ignore group messages and read-only chats
           return;
         }
+        await this.setupBotCommands(message);
         const { body, timestamp, hasMedia, links } = message;
         const contactInfo = await message.getContact();
         const userNumber = await contactInfo.getFormattedNumber();
