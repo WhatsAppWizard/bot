@@ -172,9 +172,8 @@ class WhatsApp {
     if (commands.includes(command)) {
       message.reply(`
         Hi there! I'm WhatsApp Wizard.
-        Now you can send my any Link from Facebook, Tiktok, Instagram, YouTube or Twitter and I will download it for you.\n
-        Also, We still supporting make stickers from images! Send me any image and I will make a sticker for you.`);
-     
+        Now you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\n
+        Additionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`);
     }
 
    
