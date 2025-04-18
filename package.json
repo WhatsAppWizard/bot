@@ -1,6 +1,6 @@
 {
   "name": "typescript-starter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "index.js",
   "scripts": {
     "build": "tsc && npx prisma generate",
