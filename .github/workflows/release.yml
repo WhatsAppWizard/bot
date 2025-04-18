@@ -58,8 +58,7 @@ jobs:
         run: |
           # Ensure the target prisma directory exists
           mkdir -p release-package/prisma
-          # Copy compiled code (assuming it's in 'dist')
-          cp -r dist release-package/
+          cp -r build release-package/
           # Copy Prisma schema (needed for runtime)
           cp prisma/schema.prisma release-package/prisma/
           # Copy README
