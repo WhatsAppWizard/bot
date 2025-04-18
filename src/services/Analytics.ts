@@ -17,7 +17,7 @@ class AnalyticsService {
       host,
       flushInterval: 10000, // Flush events every 10 seconds
       flushAt: 5, // Flush when 5 events are queued
-  }
+  })}
 
   trackEvent(
     eventName: string,
