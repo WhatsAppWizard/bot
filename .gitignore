@@ -141,3 +141,5 @@ DEV
 public/media/*
 migrations
 generated
+
+build
