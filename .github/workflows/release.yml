@@ -1,9 +1,7 @@
 name: Create Draft Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # Changed from push to manual trigger
 
 # Grant permissions for creating releases and pushing commits
 permissions:
@@ -48,17 +46,13 @@ jobs:
       - name: Create release package directory
         run: mkdir release-package
 
-      - name: Install production dependencies only
-        working-directory: release-package
-        run: |
-          cp ../package.json ../package-lock.json .
-          npm install --production --ignore-scripts # Install only runtime dependencies
-
       - name: Copy build output and necessary files
         run: |
           # Ensure the target prisma directory exists
           mkdir -p release-package/prisma
           cp -r build release-package/
+          # Copy package files (user will run npm install)
+          cp package.json package-lock.json release-package/
           # Copy Prisma schema (needed for runtime)
           cp prisma/schema.prisma release-package/prisma/
           # Copy README
