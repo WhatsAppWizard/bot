@@ -1,17 +1,17 @@
 {
-  "name": "typescript-starter",
-  "version": "1.0.2",
+  "name": "whatsapp-wizard",
+  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "build": "tsc && npx prisma generate",
     "dev": "nodemon src/index.ts",
     "lint": "eslint ./src/**/.ts",
-    "start": "node index.js"
+    "start": "node build/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "gitnasr",
   "license": "ISC",
-  "description": "",
+  "description": "A Node JS App that allows you to download media from YouTube, Instagram, Twitter and TikTok using WhatsApp. Also Making Stickers",
   "devDependencies": {
     "@types/express": "^5.0.1",
     "@types/qr-image": "^3.2.9",
