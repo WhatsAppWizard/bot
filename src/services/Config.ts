@@ -8,13 +8,14 @@ class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");
   public static getPuppeteerOptions() {
     return {
-      headless: true,
+      headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-web-security",
         "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-gpu",
       ],
       executablePath: chromePaths.chrome,
     };
