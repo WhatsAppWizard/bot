@@ -1,7 +1,8 @@
-import QRCode from "qr-image";
 import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
-import { DownloadStatus } from "../generated/prisma";
 import { DownloadEvents, DownloadJob } from "../types/Download";
+
+import QRCode from "qr-image";
+import { DownloadStatus } from "../generated/prisma";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
@@ -170,10 +171,7 @@ class WhatsApp {
     ]
 
     if (commands.includes(command)) {
-      message.reply(`
-        Hi there! I'm WhatsApp Wizard.
-        Now you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\n
-        Additionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`);
+      message.reply(`Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`);
     }
 
    
