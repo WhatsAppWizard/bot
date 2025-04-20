@@ -8,7 +8,7 @@ class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");
   public static getPuppeteerOptions() {
     return {
-      headless: "new",
+      headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
