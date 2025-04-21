@@ -3,10 +3,12 @@
   "version": "1.0.1",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && npx prisma generate",
+    "build-prisma": "tsc && npx prisma generate",
     "dev": "nodemon src/index.ts",
     "lint": "eslint ./src/**/.ts",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "build":" tsc",
+    "pm":"pm2 start"
   },
   "keywords": [],
   "author": "gitnasr",
