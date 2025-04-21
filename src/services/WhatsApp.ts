@@ -50,6 +50,7 @@ class WhatsApp {
     this.downloads = new DownloadRepository();
 
     this.telegramService = TelegramService.getInstance();
+    this.onQueueMessage();
   }
 
   async initialize() {
@@ -390,18 +391,24 @@ class WhatsApp {
       return HashMapOfNumbersAndUnreadMessages;
     } catch (error) {
       console.error("Error checking unread messages:", error);
+      this.analyticsService.trackEvent("error_checking_unread_messages", "", {
+        error,
+      });
+      this.telegramService.sendMessage(
+        "Error checking unread messages: " + error)
+        throw error;
     }
   }
 
   private RegisterMessageCheck() {
-    this.onQueueMessage();
     this.onTelegramMessage();
     this.getUnreadChats();
     setInterval(async () => {
       if (this.isAuthenticated) {
-        this.getUnreadChats();
+    await    this.getUnreadChats();
+
       }
-    }, 15000);
+    }, 5000);
   }
 
   getClientStats() {
