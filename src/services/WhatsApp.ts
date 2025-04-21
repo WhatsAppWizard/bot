@@ -50,7 +50,7 @@ class WhatsApp {
     this.downloads = new DownloadRepository();
 
     this.telegramService = TelegramService.getInstance();
-    this.onQueueMessage();
+    
   }
 
   async initialize() {
@@ -68,6 +68,7 @@ class WhatsApp {
       this.telegramService.sendMessage(
         "WhatsApp is authenticated and ready to go!"
       );
+      
     });
 
     this.client.on("auth_failure", () => {
@@ -111,6 +112,7 @@ class WhatsApp {
       }
 
       // Set up message event handler
+      this.onQueueMessage();
       this.setupMessageHandler();
       this.RegisterMessageCheck();
       this.registerBlockOnCalls();

@@ -18,7 +18,6 @@ class QueueService extends EventEmitter {
   public static getInstance(): QueueService {
     if (!QueueService.instance) {
       QueueService.instance = new QueueService();
-      QueueService.instance.queueEvents();
     }
     return QueueService.instance;
   }
@@ -30,6 +29,8 @@ class QueueService extends EventEmitter {
 
     });
     this.setupDownloaderQueue();
+    this.queueEvents();
+
   }
 
   private setupDownloaderQueue() {
@@ -93,6 +94,8 @@ class QueueService extends EventEmitter {
 
   private queueEvents() {
     this.downloaderWorker.on("completed", (job) => {
+
+      console.log("Emitting download completed event", job.id, job.data.downloadId);
 
       this.emit(DownloadEvents.DownloadCompleted, job as DownloadJob);
     });
