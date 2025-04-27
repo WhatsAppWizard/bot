@@ -7,6 +7,7 @@ import { SnapSaver } from "snapsaver-downloader";
 import TikTokError from "../errors/TikTokError";
 import axios from "axios";
 import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
+import { fileTypeFromBuffer } from 'file-type';
 
 class DownloadService {
   constructor() {}
@@ -114,24 +115,25 @@ class DownloadService {
     platform: string
   ): Promise<IDownloadedOnDisk> {
     const res = await axios.get(url, { responseType: "arraybuffer" });
-    const buffer = Buffer.from(res.data, "binary");
-    const mimeType = res.headers["content-type"];
+    const buffer = Buffer.from(res.data);
+    const fileType = await fileTypeFromBuffer(buffer);
 
     const DownloadPath = ConfigService.getDownloadPaths(platform);
     const timestamp = Date.now();
 
-    let extension = "";
+    let extension = fileType?.ext || 'bin'; 
+    let mime = fileType?.mime || '';
+
     let type: "video" | "image";
-    if (mimeType.startsWith("video/") || mimeType === "application/octet-stream") {
-      extension = ".mp4";
-      type = "video";
-    } else if (mimeType.startsWith("image/")) {
-      const extFromMime = mimeType.split("/")[1]; // e.g., image/png → png
-      extension = `.${extFromMime || "jpg"}`;
+
+    if (mime.startsWith('image/')) {
       type = "image";
+    } else if (mime.startsWith('video/')) {
+      type = "video";
     } else {
-      throw new Error(`Unsupported media type: ${mimeType}`);
+      throw new Error(`Unsupported MIME type: ${mime}`);
     }
+      
 
     const fileName = `${timestamp}${extension}`;
     const filePath = `${DownloadPath}/${fileName}`;

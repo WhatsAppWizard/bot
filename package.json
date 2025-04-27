@@ -32,6 +32,7 @@
     "chrome-paths": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "file-type": "^20.5.0",
     "ioredis": "^5.6.1",
     "posthog-node": "^4.11.7",
     "prisma": "^6.6.0",
