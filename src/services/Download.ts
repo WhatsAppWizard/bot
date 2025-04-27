@@ -135,7 +135,7 @@ class DownloadService {
     }
       
 
-    const fileName = `${timestamp}${extension}`;
+    const fileName = `${timestamp}.${extension}`;
     const filePath = `${DownloadPath}/${fileName}`;
     await FileService.saveFile(filePath, buffer);
     return { path: filePath, type, platform };
