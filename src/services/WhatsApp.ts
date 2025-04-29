@@ -1,18 +1,18 @@
 import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
 
+import QRCode from "qr-image";
+import { DownloadStatus } from "../generated/prisma";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
-import { DownloadStatus } from "../generated/prisma";
 import ErrorsRepository from "./Database/Errors";
+import StickerRepository from "./Database/Stickers";
+import UserRepository from "./Database/Users";
 import FileService from "./Files";
-import QRCode from "qr-image";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
-import StickerRepository from "./Database/Stickers";
 import TelegramService from "./Telegram";
-import UserRepository from "./Database/Users";
 
 class WhatsApp {
   private client: Client;
@@ -298,8 +298,15 @@ class WhatsApp {
             const userMessageOnWhatsApp = await this.client.getMessageById(
               message.id._serialized
             );
-
+            if (!userMessageOnWhatsApp) {
+              console.error("Message not found: Propeply The Message is Deleted", message.id._serialized);
+             const chat = await this.client.getChatById(message.from);
+             await chat.sendMessage(media);
+            }else{ 
             userMessageOnWhatsApp.reply(media);
+              
+            }
+
 
             await FileService.removeFile(path);
 
