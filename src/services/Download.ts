@@ -4,17 +4,20 @@ import FileService from "./Files";
 import { IDownloadedOnDisk } from "../types/Download";
 import InstagramError from "../errors/InstagramError";
 import { SnapSaver } from "snapsaver-downloader";
-import TikTokError from "../errors/TikTokError";
 import axios from "axios";
 import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
-import { fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from "file-type";
 
 class DownloadService {
   constructor() {}
-  private async TikTokVideoDownloader(url: string): Promise<IDownloadedOnDisk[]> {
-    return this.genericDownloader(url, "TikTok", TikTokError);
+  private async TikTokVideoDownloader(
+    url: string
+  ): Promise<IDownloadedOnDisk[]> {
+    const tk = await this.TikTok(url);
+    const file = await this.DownloadOnDisk(tk, "TikTok");
+    return [file];
   }
-  
+
   private async InstagramDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     return this.genericDownloader(url, "Instagram", InstagramError);
   }
@@ -24,9 +27,9 @@ class DownloadService {
   }
 
   private async YouTubeDownloader(url: string): Promise<IDownloadedOnDisk[]> {
-      const yt = await this.Youtube(url);
-      const file = await this.DownloadOnDisk(yt, "YouTube");
-      return [file];
+    const yt = await this.Youtube(url);
+    const file = await this.DownloadOnDisk(yt, "YouTube");
+    return [file];
   }
 
   private async TwitterDownloader(url: string): Promise<IDownloadedOnDisk[]> {
@@ -35,47 +38,62 @@ class DownloadService {
     return [file];
   }
 
-
-  private async Twitter(url:string): Promise<string> {
-    const endpoint = `https://nayan-video-downloader.vercel.app/twitterdown?url=${encodeURIComponent(url)}`;
+  private async Twitter(url: string): Promise<string> {
+    const endpoint = `https://nayan-video-downloader.vercel.app/twitterdown?url=${encodeURIComponent(
+      url
+    )}`;
     const res = await axios.get(endpoint);
 
     if (res.status !== 200) {
       throw new Error("Failed to fetch video URL.");
     }
-    const videoUrl:string = res.data.data.SD || res.data.data.HD;
+    const videoUrl: string = res.data.data.SD || res.data.data.HD;
     if (!videoUrl) {
-      throw new Error("No video URL found in the response. Both SD and HD are undefined.");
+      throw new Error(
+        "No video URL found in the response. Both SD and HD are undefined."
+      );
     }
 
     return videoUrl;
   }
 
-
   private async Youtube(url: string): Promise<string> {
-      const endpoint = `https://nayan-video-downloader.vercel.app/ytdown?url=${encodeURIComponent(url)}`;
-      const res = await axios.get(endpoint);
+    const endpoint = `https://nayan-video-downloader.vercel.app/ytdown?url=${encodeURIComponent(
+      url
+    )}`;
+    const res = await axios.get(endpoint);
 
-      if (res.status !== 200) {
-        throw new Error("Failed to fetch video URL.");
-      }
-      const videoUrl = res.data.data.video;
+    if (res.status !== 200) {
+      throw new Error("Failed to fetch video URL.");
+    }
+    const videoUrl = res.data.data.video;
 
-      return videoUrl;
-
+    return videoUrl;
   }
-  
-  private detectPlatform(url: string) : string {
+
+  private async TikTok(url: string): Promise<string> {
+    const endpoint = `https://nayan-video-downloader.vercel.app/tikdown?url=${encodeURIComponent(
+      url
+    )}`;
+    const res = await axios.get(endpoint);
+
+    if (res.status !== 200 || !res.data.data.video) {
+      throw new Error("Failed to fetch video URL.");
+    }
+
+    return res.data.data.video;
+  }
+
+  private detectPlatform(url: string): string {
     const platform = detectPlatformFromURL(url);
 
     if (!platform) {
       throw new Error("Invalid URL or unsupported platform.");
     }
     return platform;
+  }
 
-  } 
-
-  public async Download(url:string): Promise<IDownloadedOnDisk[]> { 
+  public async Download(url: string): Promise<IDownloadedOnDisk[]> {
     // 1. Detect the platform of url
 
     const platform = this.detectPlatform(url);
@@ -121,19 +139,18 @@ class DownloadService {
     const DownloadPath = ConfigService.getDownloadPaths(platform);
     const timestamp = Date.now();
 
-    let extension = fileType?.ext || 'bin'; 
-    let mime = fileType?.mime || '';
+    let extension = fileType?.ext || "bin";
+    let mime = fileType?.mime || "";
 
     let type: "video" | "image";
 
-    if (mime.startsWith('image/')) {
+    if (mime.startsWith("image/")) {
       type = "image";
-    } else if (mime.startsWith('video/')) {
+    } else if (mime.startsWith("video/")) {
       type = "video";
     } else {
       throw new Error(`Unsupported MIME type: ${mime}`);
     }
-      
 
     const fileName = `${timestamp}.${extension}`;
     const filePath = `${DownloadPath}/${fileName}`;
@@ -141,38 +158,47 @@ class DownloadService {
     return { path: filePath, type, platform };
   }
 
-  private async genericDownloader(url: string, platform: "TikTok" | "Instagram" | "Facebook", errorClass: any): Promise<IDownloadedOnDisk[]> {
+  private async genericDownloader(
+    url: string,
+    platform: "Instagram" | "Facebook",
+    errorClass: any
+  ): Promise<IDownloadedOnDisk[]> {
     try {
       const result = await SnapSaver(url);
-      if (!result.success) throw new errorClass(result.message || "Unknown error");
+      if (!result.success)
+        throw new errorClass(result.message || "Unknown error");
       // Facebook is the only one that returns a different structure as Resolution,
       // we need pick the SD resolution since we are targeting the mobile version
       if (platform === "Facebook") {
         if (!result.data) throw new errorClass("No data found");
 
-          const SDResolution = result.data?.media?.filter(item => item.resolution?.includes("SD"))[0];
-          result.data.media = SDResolution ? [SDResolution] :  result.data.media  ? [result.data.media[result.data.media.length - 1]] : [];
+        const SDResolution = result.data?.media?.filter((item) =>
+          item.resolution?.includes("SD")
+        )[0];
+        result.data.media = SDResolution
+          ? [SDResolution]
+          : result.data.media
+          ? [result.data.media[result.data.media.length - 1]]
+          : [];
       }
       const mediaUrls = (result.data?.media || [])
-        .map(item => item.url)
-        .filter((url): url is string => Boolean(url))
-  
+        .map((item) => item.url)
+        .filter((url): url is string => Boolean(url));
+
       const SavedFiles: IDownloadedOnDisk[] = [];
-  
+
       for (const mediaUrl of mediaUrls) {
         const path = await this.DownloadOnDisk(mediaUrl, platform);
         if (!path) throw new errorClass("Failed to download media");
         SavedFiles.push(path);
       }
-  
+
       return SavedFiles;
     } catch (error) {
       console.error(`${platform} Download error:`, error);
       throw error;
     }
   }
-  
 }
 
 export const downloadService = new DownloadService();
-
