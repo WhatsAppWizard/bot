@@ -20,8 +20,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build TypeScript and generate Prisma client
-RUN npm run build-prisma
+# Set build environment variables
+ENV NODE_ENV=production
+
+# Build TypeScript
+RUN npm run build
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Production stage
 FROM node:20-slim
