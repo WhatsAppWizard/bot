@@ -28,3 +28,5 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-wizard:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-wizard:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-wizard:buildcache,mode=max
