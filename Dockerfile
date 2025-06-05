@@ -1,71 +1,76 @@
-# Build stage
-FROM node:20-slim AS builder
+# Use Node.js official image with Alpine for smaller size
+FROM node:20-alpine AS base
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies for Puppeteer and Chrome
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && rm -rf /var/cache/apk/*
 
+# Tell Puppeteer to skip installing Chromium. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Set working directory
 WORKDIR /app
+
+# Create app user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependencies in a separate stage for better caching
+FROM base AS deps
+RUN npm ci --only=production && npm cache clean --force
+
+# Development dependencies stage
+FROM base AS build-deps
 RUN npm ci
 
-# Copy source code
+# Build stage
+FROM build-deps AS build
 COPY . .
-
-# Set build environment variables
-ENV NODE_ENV=production
-
-# Build TypeScript
-RUN npm run build
+COPY --from=deps /app/node_modules ./node_modules
 
 # Generate Prisma client
 RUN npx prisma generate
 
+# Build the application
+RUN npm run build
+
 # Production stage
-FROM node:20-slim
+FROM base AS production
 
-# Install Chrome dependencies
-RUN apt-get update && apt-get install -y \
-    chromium \
-    fonts-ipafont-gothic \
-    fonts-wqy-zenhei \
-    fonts-thai-tlwg \
-    fonts-kacst \
-    fonts-freefont-ttf \
-    libxss1 \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+# Copy production dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/build ./build
+COPY --from=build /app/src/generated ./src/generated
+COPY --from=build /app/prisma ./prisma
+COPY package*.json ./
 
-WORKDIR /app
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
+    chown -R nextjs:nodejs /app
 
-# Copy built assets from builder
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/ecosystem.config.js ./
-
-# Install PM2 globally
-RUN npm install -g pm2
-
-# Set environment variables
-ENV NODE_ENV=production \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-
-# Create directory for WhatsApp sessions
-RUN mkdir -p /app/DEV/session
+# Switch to non-root user
+USER nextjs
 
 # Expose port
 EXPOSE 3000
 
-# Start the application using PM2
-CMD ["pm2-runtime", "ecosystem.config.js"] 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (res) => { \
+        res.statusCode === 200 ? process.exit(0) : process.exit(1) \
+    }).on('error', () => process.exit(1))"
+
+# Start the application
+CMD ["node", "/app/build/index.js"]

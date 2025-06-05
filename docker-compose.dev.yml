@@ -1,15 +1,15 @@
 version: '3.8'
 
 services:
-  whatsapp-wizard:
+  whatsapp-wizard-dev:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: whatsapp-wizard-app
+      target: build-deps
+    container_name: whatsapp-wizard-dev
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3000
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-whatsapp123}@postgres:5432/${POSTGRES_DB:-whatsappwizard}?schema=public
       - REDIS_URL=redis://redis:6379
@@ -17,36 +17,34 @@ services:
       - CHAT_ID=${CHAT_ID}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
-      # Puppeteer specific for containerized environment
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
     ports:
       - "3000:3000"
     volumes:
-      # Persist WhatsApp session data
-      - whatsapp_sessions:/app/BTA
-      - whatsapp_dev_sessions:/app/DEV
-      # Persist media files and QR codes
-      - whatsapp_media:/app/public
-      # Persist logs
-      - whatsapp_logs:/app/logs
+      # Mount source code for hot reload
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./nodemon.json:/app/nodemon.json
+      # Persist data
+      - whatsapp_sessions_dev:/app/BTA
+      - whatsapp_dev_sessions_dev:/app/DEV
+      - whatsapp_media_dev:/app/public
+      - whatsapp_logs_dev:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-      - whatsapp-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { res.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - whatsapp-network-dev
+    command: ["npm", "run", "dev"]
 
   postgres:
     image: postgres:15-alpine
-    container_name: whatsapp-wizard-postgres
+    container_name: whatsapp-wizard-postgres-dev
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-whatsappwizard}
@@ -54,11 +52,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-whatsapp123}
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
-      - whatsapp-network
+      - whatsapp-network-dev
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-whatsappwizard}"]
       interval: 10s
@@ -67,25 +65,24 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: whatsapp-wizard-redis
+    container_name: whatsapp-wizard-redis-dev
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - redis_data_dev:/data
     ports:
       - "6379:6379"
     networks:
-      - whatsapp-network
+      - whatsapp-network-dev
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Optional: Redis Commander for Redis management
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: whatsapp-wizard-redis-commander
+    container_name: whatsapp-wizard-redis-commander-dev
     restart: unless-stopped
     environment:
       - REDIS_HOSTS=local:redis:6379
@@ -94,46 +91,41 @@ services:
     depends_on:
       - redis
     networks:
-      - whatsapp-network
-    profiles:
-      - dev
+      - whatsapp-network-dev
 
-  # Optional: pgAdmin for PostgreSQL management
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: whatsapp-wizard-pgadmin
+    container_name: whatsapp-wizard-pgadmin-dev
     restart: unless-stopped
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@whatsappwizard.local}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
       - PGADMIN_CONFIG_SERVER_MODE=False
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_data_dev:/var/lib/pgadmin
     ports:
       - "8080:80"
     depends_on:
       - postgres
     networks:
-      - whatsapp-network
-    profiles:
-      - dev
+      - whatsapp-network-dev
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
     driver: local
-  redis_data:
+  redis_data_dev:
     driver: local
-  whatsapp_sessions:
+  whatsapp_sessions_dev:
     driver: local
-  whatsapp_dev_sessions:
+  whatsapp_dev_sessions_dev:
     driver: local
-  whatsapp_media:
+  whatsapp_media_dev:
     driver: local
-  whatsapp_logs:
+  whatsapp_logs_dev:
     driver: local
-  pgadmin_data:
+  pgadmin_data_dev:
     driver: local
 
 networks:
-  whatsapp-network:
+  whatsapp-network-dev:
     driver: bridge

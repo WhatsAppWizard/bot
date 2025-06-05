@@ -4,11 +4,11 @@ npm-debug.log
 yarn-debug.log
 yarn-error.log
 
-# Build output
+# Build output (already built in container)
 build
 dist
 
-# Environment variables
+# Environment variables (use docker env vars instead)
 .env
 .env.*
 
@@ -18,10 +18,10 @@ dist
 README.md
 .eslintrc.js
 nodemon.json
-tsconfig.json
 
-# WhatsApp session data
+# WhatsApp session data (will be mounted as volumes)
 .wwebjs_cache
+BTA/session/*
 DEV/session/*
 
 # IDE files
@@ -33,6 +33,26 @@ __tests__
 *.test.ts
 *.spec.ts
 
-# Logs
+# Logs (will be mounted as volumes)
 logs
-*.log 
+*.log
+
+# Docker files (not needed inside container)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Temporary files
+.tmp
+.temp
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage
+.nyc_output
+
+# TypeScript cache
+*.tsbuildinfo
