@@ -7,7 +7,7 @@ import path from "path";
 class ConfigService {
   private static PublicPath: string = path.join(process.cwd(), "public");  public static getPuppeteerOptions() {
     return {
-      headless: ConfigService.isProduction(),
+      headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -70,7 +70,7 @@ class ConfigService {
   }
 
   public static getRedis() {
-    return process.env.REDIS_URL || "redis://localhost:6379";
+    return process.env.REDIS_URL || 'redis://127.0.0.1:6379'
   }
 
   public static getHardcodedRatelimit() {

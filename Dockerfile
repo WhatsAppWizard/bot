@@ -10,11 +10,17 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    dbus \
+    xvfb \
     && rm -rf /var/cache/apk/*
 
 # Tell Puppeteer to skip installing Chromium. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    DISPLAY=:99 \
+    CHROME_BIN=/usr/bin/chromium-browser \
+    CHROME_PATH=/usr/lib/chromium/ \
+    DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 # Set working directory
 WORKDIR /app
@@ -46,15 +52,29 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
+# Include Prisma client output in build folder for production runtime
+RUN cp -R src/generated build/generated
+
+# Debug: Check what was built
+RUN echo "Contents of /app:" && ls -la /app/
+RUN echo "Contents of /app/build:" && ls -la /app/build/
+RUN echo "Contents of /app/build/generated:" && ls -la /app/build/generated/ || echo "No generated folder"
+RUN echo "Checking index.js:" && test -f /app/build/index.js && echo "index.js exists" || echo "index.js NOT found"
+
 # Production stage
 FROM base AS production
 
 # Copy production dependencies
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
-COPY --from=build /app/src/generated ./src/generated
 COPY --from=build /app/prisma ./prisma
 COPY package*.json ./
+
+# Debug: Verify files were copied correctly
+RUN echo "Production stage - Contents of /app:" && ls -la /app/
+RUN echo "Production stage - Contents of /app/build:" && ls -la /app/build/
+RUN echo "Production stage - Contents of /app/build/generated:" && ls -la /app/build/generated/ || echo "No generated folder"
+RUN echo "Production stage - Checking index.js:" && test -f /app/build/index.js && echo "index.js exists" || echo "index.js NOT found"
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
