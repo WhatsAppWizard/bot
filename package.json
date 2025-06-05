@@ -6,7 +6,7 @@
     "build-prisma": "tsc && npx prisma generate",
     "dev": "nodemon src/index.ts",
     "lint": "eslint ./src/**/.ts",
-    "start": "node build/index.js",
+    "start": "node ./app/build/index.js",
     "build": " tsc",
     "pm": "pm2 start"
   },
