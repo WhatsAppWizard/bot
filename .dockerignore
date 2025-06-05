@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build output
+build
+dist
+
+# Environment variables
+.env
+.env.*
+
+# Development files
+.git
+.gitignore
+README.md
+.eslintrc.js
+nodemon.json
+tsconfig.json
+
+# WhatsApp session data
+.wwebjs_cache
+DEV/session/*
+
+# IDE files
+.vscode
+.idea
+
+# Test files
+__tests__
+*.test.ts
+*.spec.ts
+
+# Logs
+logs
+*.log 
