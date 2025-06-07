@@ -1,12 +1,12 @@
+import TelegramService from "./services/Telegram";
+import WhatsApp from "./services/WhatsApp";
+import app from "./services/Express";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import app from "./services/Express";
-import TelegramService from "./services/Telegram";
-import WhatsApp from "./services/WhatsApp";
+import router from "./routes/health";
 
 dotenv.config();
-
 
 const telegramService = TelegramService.getInstance();
 setupExitHandlers();
@@ -18,8 +18,7 @@ async function main() {
 
   const whatsapp = new WhatsApp();
 
-  // Set up exit handlers
-
+  app.use("/api/health", router);
 
   // Make WhatsApp instance accessible to routes
   app.set("whatsapp", whatsapp);
@@ -31,13 +30,11 @@ function setupExitHandlers() {
   // Handle graceful shutdown
   process.on("SIGINT", () => {
     telegramService.sendMessage("Server is shutting down gracefully...");
-    process.exit(1); 
-
+    process.exit(1);
   });
   process.on("SIGTERM", () => {
     telegramService.sendMessage("MAYDAY: SERVER CRASHED...");
-    process.exit(1); 
-
+    process.exit(1);
   });
 
   // Handle uncaught exceptions
@@ -46,7 +43,6 @@ function setupExitHandlers() {
     telegramService.sendMessage("Another Unhandled Exception" + error);
 
     process.exit(1);
-    
   });
 
   // Handle unhandled promise rejections
@@ -55,9 +51,7 @@ function setupExitHandlers() {
     telegramService.sendMessage("Another Unhandled Rejection" + reason);
 
     process.exit(1);
-
   });
 }
-
 
 main();
