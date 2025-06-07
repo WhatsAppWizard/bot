@@ -5,10 +5,9 @@ import fs from "fs";
 import path from "path";
 
 class ConfigService {
-  private static PublicPath: string = path.join(process.cwd(), "public");
-  public static getPuppeteerOptions() {
+  private static PublicPath: string = path.join(process.cwd(), "public");  public static getPuppeteerOptions() {
     return {
-      headless: ConfigService.isProduction() ,
+      headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -16,8 +15,11 @@ class ConfigService {
         "--disable-web-security",
         "--disable-features=IsolateOrigins,site-per-process",
         "--disable-gpu",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
       ],
-      executablePath: chromePaths.chrome,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePaths.chrome,
     };
   }
   private static isProduction() {
@@ -68,7 +70,7 @@ class ConfigService {
   }
 
   public static getRedis() {
-    return process.env.REDIS_URL || "redis://localhost:6379";
+    return process.env.REDIS_URL || 'redis://127.0.0.1:6379'
   }
 
   public static getHardcodedRatelimit() {
