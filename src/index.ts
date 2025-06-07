@@ -18,7 +18,6 @@ async function main() {
 
   const whatsapp = new WhatsApp();
 
-  // Set up exit handlers
   app.use("/api/health", router);
 
   // Make WhatsApp instance accessible to routes
