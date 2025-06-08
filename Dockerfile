@@ -1,7 +1,7 @@
 # Use Node.js official image with Alpine for smaller size
 FROM node:20-alpine AS base
 
-# Install dependencies for Puppeteer and Chrome
+# Install dependencies for Puppeteer and Chrome and PM2 in a single layer
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     ttf-freefont \
     dbus \
     xvfb \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/* \
+    && npm install -g pm2
 
 # Tell Puppeteer to skip installing Chromium. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
@@ -25,11 +26,13 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 # Set working directory
 WORKDIR /app
 
-# Create app user for security
+# Create app user for security and necessary directories in a single layer
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+    adduser -S nextjs -u 1001 && \
+    mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
+    chown -R nextjs:nodejs /app
 
-# Copy package files
+# Copy package files and prisma schema first for better caching
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -46,39 +49,20 @@ FROM build-deps AS build
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build the application
-RUN npm run build
-
-# Include Prisma client output in build folder for production runtime
-RUN cp -R src/generated build/generated
-
-# Debug: Check what was built
-RUN echo "Contents of /app:" && ls -la /app/
-RUN echo "Contents of /app/build:" && ls -la /app/build/
-RUN echo "Contents of /app/build/generated:" && ls -la /app/build/generated/ || echo "No generated folder"
-RUN echo "Checking index.js:" && test -f /app/build/index.js && echo "index.js exists" || echo "index.js NOT found"
+# Generate Prisma client and build the application in a single layer
+RUN npx prisma generate && \
+    npm run build && \
+    cp -R src/generated build/generated
 
 # Production stage
 FROM base AS production
 
-# Copy production dependencies
+# Copy all necessary files in a single layer
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/ecosystem.config.js ./
 COPY package*.json ./
-
-# Debug: Verify files were copied correctly
-RUN echo "Production stage - Contents of /app:" && ls -la /app/
-RUN echo "Production stage - Contents of /app/build:" && ls -la /app/build/
-RUN echo "Production stage - Contents of /app/build/generated:" && ls -la /app/build/generated/ || echo "No generated folder"
-RUN echo "Production stage - Checking index.js:" && test -f /app/build/index.js && echo "index.js exists" || echo "index.js NOT found"
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
-    chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
@@ -92,5 +76,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
         res.statusCode === 200 ? process.exit(0) : process.exit(1) \
     }).on('error', () => process.exit(1))"
 
-# Start the application
-CMD ["node", "/app/build/index.js"]
+# Start the application with PM2
+CMD ["pm2-runtime", "ecosystem.config.js"]
