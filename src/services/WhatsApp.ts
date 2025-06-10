@@ -231,7 +231,14 @@ class WhatsApp {
             });
 
             this.analyticsService.trackEvent("sticker_created", user.id);
+          }else { 
+            message.reply("We only support creating stickers from Image files only")
           }
+        }
+
+        if (body. length > 2 && !hasMedia && links.length ==0 ) {
+            const response = await this.agentService.sendMessage(message.body);
+            message.reply(response);
         }
 
         if (links.length > 0) {
@@ -271,12 +278,6 @@ class WhatsApp {
                 message,
               }
             );
-          }else{ 
-            if (message.body.length > 2) {
-              const response = await this.agentService.sendMessage(message.body);
-              message.reply(response);
-            }
-          
           }
         }
       } catch (error) {
