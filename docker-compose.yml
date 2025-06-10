@@ -23,9 +23,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Persist WhatsApp session data
+      # Persist WhatsApp session data with specific paths for auth and cache
       - whatsapp_sessions:/app/BTA
       - whatsapp_dev_sessions:/app/DEV
+      - whatsapp_auth:/app/.wwebjs_auth
+      - whatsapp_cache:/app/.wwebjs_cache
       # Persist media files and QR codes
       - whatsapp_media:/app/public
       # Persist logs
@@ -49,18 +51,14 @@ services:
     container_name: whatsapp-wizard-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-whatsappwizard}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-whatsapp123}
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_DB=${POSTGRES_DB:-whatsappwizard}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - whatsapp-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-whatsappwizard}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -69,11 +67,8 @@ services:
     image: redis:7-alpine
     container_name: whatsapp-wizard-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     networks:
       - whatsapp-network
     healthcheck:
@@ -91,8 +86,6 @@ services:
       - REDIS_HOSTS=local:redis:6379
     ports:
       - "8081:8081"
-    depends_on:
-      - redis
     networks:
       - whatsapp-network
     profiles:
@@ -100,19 +93,16 @@ services:
 
   # Optional: pgAdmin for PostgreSQL management
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4
     container_name: whatsapp-wizard-pgadmin
     restart: unless-stopped
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@whatsappwizard.local}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
-      - PGADMIN_CONFIG_SERVER_MODE=False
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@admin.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
     ports:
       - "8080:80"
-    depends_on:
-      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     networks:
       - whatsapp-network
     profiles:
@@ -126,6 +116,10 @@ volumes:
   whatsapp_sessions:
     driver: local
   whatsapp_dev_sessions:
+    driver: local
+  whatsapp_auth:
+    driver: local
+  whatsapp_cache:
     driver: local
   whatsapp_media:
     driver: local
