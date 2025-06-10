@@ -271,11 +271,13 @@ class WhatsApp {
                 message,
               }
             );
+          }else{ 
+            if (message.body.length > 2) {
+              const response = await this.agentService.sendMessage(message.body);
+              message.reply(response);
+            }
+          
           }
-        }else { 
-          const response = await this.agentService.sendMessage(message.body);
-
-          message.reply(response);
         }
       } catch (error) {
         console.log(error, "Error in message handler");
