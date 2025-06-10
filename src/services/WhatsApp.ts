@@ -1,18 +1,19 @@
 import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
 
-import QRCode from "qr-image";
-import { DownloadStatus } from "../generated/prisma";
+import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
+import { DownloadStatus } from "../generated/prisma";
 import ErrorsRepository from "./Database/Errors";
-import StickerRepository from "./Database/Stickers";
-import UserRepository from "./Database/Users";
 import FileService from "./Files";
+import QRCode from "qr-image";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
+import StickerRepository from "./Database/Stickers";
 import TelegramService from "./Telegram";
+import UserRepository from "./Database/Users";
 
 class WhatsApp {
   private client: Client;
@@ -22,6 +23,7 @@ class WhatsApp {
   private telegramService: TelegramService;
   private rateLimiterService: RateLimiterService;
   private analyticsService = AnalyticsService;
+  private agentService = new AgentService();
 
   private users: UserRepository;
   private stickers: StickerRepository;
@@ -50,7 +52,6 @@ class WhatsApp {
     this.downloads = new DownloadRepository();
 
     this.telegramService = TelegramService.getInstance();
-    
   }
 
   async initialize() {
@@ -68,7 +69,6 @@ class WhatsApp {
       this.telegramService.sendMessage(
         "WhatsApp is authenticated and ready to go!"
       );
-      
     });
 
     this.client.on("auth_failure", () => {
@@ -154,7 +154,6 @@ class WhatsApp {
     });
   }
   private async setupBotCommands(message: Message) {
-
     const command = message.body.toLowerCase().trim();
 
     const commands = [
@@ -174,14 +173,18 @@ class WhatsApp {
       "اهلا",
       "download",
       "/",
-      ".."
-    ]
+      "..",
+    ];
 
     if (commands.includes(command)) {
-      message.reply(`Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`);
-    }
+      message.reply(
+        `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`
+      );
+    } else {
+      const response = await this.agentService.sendMessage(message.body);
 
-   
+      message.reply(response);
+    }
   }
   private setupMessageHandler() {
     // Listen for new messages
@@ -292,21 +295,22 @@ class WhatsApp {
             const { path } = element;
 
             // Make MessageMedia from filePath
-            const media = MessageMedia.fromFilePath(path); 
+            const media = MessageMedia.fromFilePath(path);
             // We're forced to get the message id and reply though client not Message object itself.
             // since the BullMQ worker converts all data to string and we lose the Message object functions.
             const userMessageOnWhatsApp = await this.client.getMessageById(
               message.id._serialized
             );
             if (!userMessageOnWhatsApp) {
-              console.error("Message not found: Propeply The Message is Deleted", message.id._serialized);
-             const chat = await this.client.getChatById(message.from);
-             await chat.sendMessage(media);
-            }else{ 
-            userMessageOnWhatsApp.reply(media);
-              
+              console.error(
+                "Message not found: Propeply The Message is Deleted",
+                message.id._serialized
+              );
+              const chat = await this.client.getChatById(message.from);
+              await chat.sendMessage(media);
+            } else {
+              userMessageOnWhatsApp.reply(media);
             }
-
 
             await FileService.removeFile(path);
 
@@ -407,8 +411,9 @@ class WhatsApp {
         error,
       });
       this.telegramService.sendMessage(
-        "Error checking unread messages: " + error)
-        throw error;
+        "Error checking unread messages: " + error
+      );
+      throw error;
     }
   }
 
@@ -417,8 +422,7 @@ class WhatsApp {
     this.getUnreadChats();
     setInterval(async () => {
       if (this.isAuthenticated) {
-    await    this.getUnreadChats();
-
+        await this.getUnreadChats();
       }
     }, 5000);
   }
