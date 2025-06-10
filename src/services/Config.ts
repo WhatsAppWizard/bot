@@ -74,7 +74,7 @@ class ConfigService {
   }
 
   public static getHardcodedRatelimit() {
-    return 5;
+    return 10;
   }
 
   public static getPostHogApiKey() {
