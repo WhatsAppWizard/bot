@@ -237,7 +237,7 @@ class WhatsApp {
         }
 
         if (body. length > 2 && !hasMedia && links.length ==0 ) {
-            const response = await this.agentService.sendMessage(message.body);
+            const response = await this.agentService.sendMessage(body,user.id);
             message.reply(response);
         }
 

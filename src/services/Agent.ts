@@ -5,6 +5,9 @@ interface AgentMessage {
     message: {
         text: string;
     };
+    user : {
+        id: string
+    }
 }
 
 interface AgentResponse {
@@ -24,11 +27,14 @@ export class AgentService {
      * @returns The agent's response
      * @throws Error if the request fails
      */
-    async sendMessage(message: string): Promise<string> {
+    async sendMessage(message: string,userId: string): Promise<string> {
         try {
             const payload: AgentMessage = {
                 message: {
                     text: message
+                },
+                user: { 
+                      "id":userId
                 }
             };
 
