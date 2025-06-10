@@ -180,11 +180,7 @@ class WhatsApp {
       message.reply(
         `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`
       );
-    } else {
-      const response = await this.agentService.sendMessage(message.body);
-
-      message.reply(response);
-    }
+    } 
   }
   private setupMessageHandler() {
     // Listen for new messages
@@ -276,6 +272,10 @@ class WhatsApp {
               }
             );
           }
+        }else { 
+          const response = await this.agentService.sendMessage(message.body);
+
+          message.reply(response);
         }
       } catch (error) {
         console.log(error, "Error in message handler");
