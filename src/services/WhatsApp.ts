@@ -307,7 +307,7 @@ class WhatsApp {
 
             if (path.startsWith("https://")) {
               // Handle URL case
-              media = await MessageMedia.fromUrl(path);
+              media = await MessageMedia.fromUrl(path, {unsafeMime:true});
             } else {
               // Handle local file path case
               media = MessageMedia.fromFilePath(path);
