@@ -11,7 +11,7 @@ WhatsAppWizard empowers users to easily download online content and create perso
 
 ## Table of Contents
 1. [Key Features ✨](#key-features-)
-2. [Demo/Screenshots 📸](#demoscreenshots-)
+2. [Demo 📸](#demoscreenshots-)
 3. [Technology Stack 🛠️](#technology-stack-)
 4. [Getting Started 🚀](#getting-started-)
     - [Prerequisites](#prerequisites)
@@ -37,9 +37,12 @@ WhatsAppWizard empowers users to easily download online content and create perso
 -   **Analytics**: Track usage and errors using PostHog to improve the bot's functionality and user experience.
 -   **Agent Service**: Integrated with an agent to provide automated responses and support to users
 
-## Demo/Screenshots 📸
+## Demo 📸
 
-TODO: Add demo links, screenshots, or GIFs showcasing the bot's features and usage.
+
+
+<video src="https://github.com/user-attachments/assets/da39f7d1-686e-4ab4-97f8-e6100723084c"/>
+
 
 ## Technology Stack 🛠️
 
