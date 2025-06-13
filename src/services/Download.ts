@@ -58,17 +58,32 @@ class DownloadService {
   }
 
   private async Youtube(url: string): Promise<string> {
-    const endpoint = `https://nayan-video-downloader.vercel.app/ytdown?url=${encodeURIComponent(
-      url
-    )}`;
-    const res = await axios.get(endpoint);
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second base delay
 
-    if (res.status !== 200) {
-      throw new Error("Failed to fetch video URL.");
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const endpoint = `https://nayan-video-downloader.vercel.app/ytdown?url=${encodeURIComponent(
+          url
+        )}`;
+        const res = await axios.get(endpoint);
+
+        if (res.status !== 200) {
+          throw new Error("Failed to fetch video URL.");
+        }
+        const videoUrl = res.data.data.video;
+        return videoUrl;
+      } catch (error) {
+        if (attempt === maxRetries - 1) {
+          throw error; // Throw the error on the last attempt
+        }
+        // Calculate delay with exponential backoff: 1s, 2s, 4s
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-    const videoUrl = res.data.data.video;
 
-    return videoUrl;
+    throw new Error("Failed to fetch video URL after all retries.");
   }
 
   private async TikTok(url: string): Promise<string> {
