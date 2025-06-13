@@ -219,9 +219,6 @@ Deploying to Production:
  *  **Configure environment variables**: Pass environment variables required to configure the server.
    *  **Set up reverse proxy (Nginx)**: Configure Nginx as a reverse proxy to route traffic to containers.
 
-## API Documentation 📚
-
-TODO: Add a link to detailed API documentation if applicable.
 
 ## Roadmap 🗺️
 
@@ -234,7 +231,6 @@ TODO: Add a link to detailed API documentation if applicable.
 
 For support, questions, or feature requests, please:
 
--   Open an issue on GitHub:  TODO: Add link to issues section
 -   Contact me via: https://github.com/gitnasr
 
 ## License 📄
