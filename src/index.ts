@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import router from "./routes/health";
 
-dotenv.config();
+dotenv.config(); 
 
 const telegramService = TelegramService.getInstance();
 setupExitHandlers();
