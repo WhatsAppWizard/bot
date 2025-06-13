@@ -39,9 +39,9 @@ WhatsAppWizard empowers users to easily download online content and create perso
 
 ## Demo 📸
 
-
-
-<video src="https://github.com/user-attachments/assets/da39f7d1-686e-4ab4-97f8-e6100723084c"/>
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/da39f7d1-686e-4ab4-97f8-e6100723084c" width="400" />
+</div>
 
 
 ## Technology Stack 🛠️
