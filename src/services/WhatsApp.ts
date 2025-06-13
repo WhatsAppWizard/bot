@@ -303,7 +303,7 @@ class WhatsApp {
 
             let media;
 
-            console.dir(media);
+            console.dir(element);
 
             if (path.startsWith("https://")) {
               // Handle URL case
@@ -407,7 +407,7 @@ class WhatsApp {
       for (const chat of chats) {
         if (chat.unreadCount > 0) {
           // get the unread messages to handle them
-          const messages = (await chat.fetchMessages({ limit: Infinity }))
+          const messages = (await chat.fetchMessages({ limit: 5 }))
             .reverse()
             .slice(0, chat.unreadCount);
 
@@ -431,16 +431,15 @@ class WhatsApp {
       this.telegramService.sendMessage(
         "Error checking unread messages: " + error
       );
-      throw error;
     }
   }
 
   private RegisterMessageCheck() {
     this.onTelegramMessage();
-    this.getUnreadChats();
+    // this.getUnreadChats();
     setInterval(async () => {
       if (this.isAuthenticated) {
-        await this.getUnreadChats();
+        // await this.getUnreadChats();
       }
     }, 5000);
   }

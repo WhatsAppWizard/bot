@@ -1,5 +1,6 @@
-import { PostHog } from "posthog-node";
 import ConfigService from "./Config";
+
+import { PostHog } from "posthog-node";
 
 class AnalyticsService {
   private client: PostHog;

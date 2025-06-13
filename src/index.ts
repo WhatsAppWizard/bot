@@ -1,12 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
 import TelegramService from "./services/Telegram";
 import WhatsApp from "./services/WhatsApp";
 import app from "./services/Express";
-import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import router from "./routes/health";
 
-dotenv.config();
+
 
 const telegramService = TelegramService.getInstance();
 setupExitHandlers();
