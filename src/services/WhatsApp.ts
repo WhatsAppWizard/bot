@@ -180,7 +180,7 @@ class WhatsApp {
       message.reply(
         `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`
       );
-    } 
+    }
   }
   private setupMessageHandler() {
     // Listen for new messages
@@ -231,14 +231,16 @@ class WhatsApp {
             });
 
             this.analyticsService.trackEvent("sticker_created", user.id);
-          }else { 
-            message.reply("We only support creating stickers from Image files only")
+          } else {
+            message.reply(
+              "We only support creating stickers from Image files only"
+            );
           }
         }
 
-        if (body. length > 2 && !hasMedia && links.length ==0 ) {
-            const response = await this.agentService.sendMessage(body,user.id);
-            message.reply(response);
+        if (body.length > 2 && !hasMedia && links.length == 0) {
+          const response = await this.agentService.sendMessage(body, user.id);
+          message.reply(response);
         }
 
         if (links.length > 0) {
@@ -297,12 +299,13 @@ class WhatsApp {
             const element = download[index];
             const { path } = element;
 
-
             // Check if it's path or url
 
             let media;
 
-            if (path.startsWith('http://') || path.startsWith('https://')) {
+            console.dir(media);
+
+            if (path.startsWith("https://")) {
               // Handle URL case
               media = await MessageMedia.fromUrl(path);
             } else {
@@ -310,7 +313,6 @@ class WhatsApp {
               media = MessageMedia.fromFilePath(path);
             }
 
-            
             // We're forced to get the message id and reply though client not Message object itself.
             // since the BullMQ worker converts all data to string and we lose the Message object functions.
             const userMessageOnWhatsApp = await this.client.getMessageById(
@@ -318,7 +320,7 @@ class WhatsApp {
             );
             if (!userMessageOnWhatsApp) {
               console.error(
-                "Message not found: Propeply The Message is Deleted",
+                "Message not found: Properly The Message is Deleted",
                 message.id._serialized
               );
               const chat = await this.client.getChatById(message.from);
@@ -327,7 +329,8 @@ class WhatsApp {
               userMessageOnWhatsApp.reply(media);
             }
 
-            await FileService.removeFile(path);
+            if (!path.startsWith("https://"))
+              await FileService.removeFile(path);
 
             this.analyticsService.trackEvent(
               "download_response",
