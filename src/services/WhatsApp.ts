@@ -297,8 +297,20 @@ class WhatsApp {
             const element = download[index];
             const { path } = element;
 
-            // Make MessageMedia from filePath
-            const media = MessageMedia.fromFilePath(path);
+
+            // Check if it's path or url
+
+            let media;
+
+            if (path.startsWith('http://') || path.startsWith('https://')) {
+              // Handle URL case
+              media = await MessageMedia.fromUrl(path);
+            } else {
+              // Handle local file path case
+              media = MessageMedia.fromFilePath(path);
+            }
+
+            
             // We're forced to get the message id and reply though client not Message object itself.
             // since the BullMQ worker converts all data to string and we lose the Message object functions.
             const userMessageOnWhatsApp = await this.client.getMessageById(

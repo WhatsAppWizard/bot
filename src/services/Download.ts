@@ -28,8 +28,11 @@ class DownloadService {
 
   private async YouTubeDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     const yt = await this.Youtube(url);
-    const file = await this.DownloadOnDisk(yt, "YouTube");
-    return [file];
+    return [{
+      path: yt,
+      type: "video",
+      platform: "YouTube"
+    }];
   }
 
   private async TwitterDownloader(url: string): Promise<IDownloadedOnDisk[]> {
