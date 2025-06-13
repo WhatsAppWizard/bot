@@ -1,5 +1,6 @@
 import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
+import { shortenerService } from "./Shortener";
 
 import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
@@ -295,27 +296,44 @@ class WhatsApp {
 
           for (let index = 0; index < download.length; index++) {
             const element = download[index];
-            const { path } = element;
+            const { path, platform } = element;
 
-            // Make MessageMedia from filePath
-            const media = MessageMedia.fromFilePath(path);
-            // We're forced to get the message id and reply though client not Message object itself.
-            // since the BullMQ worker converts all data to string and we lose the Message object functions.
+            // Get the message object
             const userMessageOnWhatsApp = await this.client.getMessageById(
               message.id._serialized
             );
-            if (!userMessageOnWhatsApp) {
-              console.error(
-                "Message not found: Propeply The Message is Deleted",
-                message.id._serialized
-              );
-              const chat = await this.client.getChatById(message.from);
-              await chat.sendMessage(media);
-            } else {
-              userMessageOnWhatsApp.reply(media);
-            }
 
-            await FileService.removeFile(path);
+            if (platform === "YouTube") {
+              // For YouTube, shorten the URL and send it
+              try {
+                const shortenedUrl = await shortenerService.shortenUrl(path);
+                if (!userMessageOnWhatsApp) {
+                  const chat = await this.client.getChatById(message.from);
+                  await chat.sendMessage(`Here's your YouTube video URL:\n ${shortenedUrl} \n Be Advised this is a Temporary fix `);
+                } else {
+                  await userMessageOnWhatsApp.reply(`Here's your YouTube video URL:\n${shortenedUrl}`);
+                }
+              } catch (error) {
+                console.error('Error shortening YouTube URL:', error);
+                // Fallback to original URL if shortening fails
+                if (!userMessageOnWhatsApp) {
+                  const chat = await this.client.getChatById(message.from);
+                  await chat.sendMessage(`Here's your YouTube video URL:\n${path}`);
+                } else {
+                  await userMessageOnWhatsApp.reply(`Here's your YouTube video URL:\n${path}`);
+                }
+              }
+            } else {
+              // For other platforms, download and send the media
+              const media = MessageMedia.fromFilePath(path);
+              if (!userMessageOnWhatsApp) {
+                const chat = await this.client.getChatById(message.from);
+                await chat.sendMessage(media);
+              } else {
+                await userMessageOnWhatsApp.reply(media);
+              }
+              await FileService.removeFile(path);
+            }
 
             this.analyticsService.trackEvent(
               "download_response",
