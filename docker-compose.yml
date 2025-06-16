@@ -9,10 +9,13 @@ services:
     container_name: whatsapp-wizard-app
     restart: unless-stopped
     environment:
+      # IMPORTANT: You must set these variables in your .env file
+      # to point to your external PostgreSQL and Redis instances.
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-whatsapp123}@postgres:5432/${POSTGRES_DB:-whatsappwizard}?schema=public
-      - REDIS_URL=redis://redis:6379
       - BOT_TOKEN=${BOT_TOKEN}
       - CHAT_ID=${CHAT_ID}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
@@ -23,20 +26,13 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Persist WhatsApp session data with specific paths for auth and cache
+      # Persist WhatsApp session data, media files, and logs
       - whatsapp_sessions:/app/BTA
       - whatsapp_dev_sessions:/app/DEV
       - whatsapp_auth:/app/.wwebjs_auth
       - whatsapp_cache:/app/.wwebjs_cache
-      # Persist media files and QR codes
       - whatsapp_media:/app/public
-      # Persist logs
       - whatsapp_logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - whatsapp-network
     healthcheck:
@@ -46,73 +42,7 @@ services:
       retries: 3
       start_period: 40s
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: whatsapp-wizard-postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-whatsapp123}
-      - POSTGRES_DB=${POSTGRES_DB:-whatsappwizard}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - whatsapp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: whatsapp-wizard-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    networks:
-      - whatsapp-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Optional: Redis Commander for Redis management
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: whatsapp-wizard-redis-commander
-    restart: unless-stopped
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8081:8081"
-    networks:
-      - whatsapp-network
-    profiles:
-      - dev
-
-  # Optional: pgAdmin for PostgreSQL management
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: whatsapp-wizard-pgadmin
-    restart: unless-stopped
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@admin.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - whatsapp-network
-    profiles:
-      - dev
-
 volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
   whatsapp_sessions:
     driver: local
   whatsapp_dev_sessions:
@@ -124,8 +54,6 @@ volumes:
   whatsapp_media:
     driver: local
   whatsapp_logs:
-    driver: local
-  pgadmin_data:
     driver: local
 
 networks:
