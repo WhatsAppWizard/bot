@@ -1,6 +1,6 @@
+import express from "express";
 import QueueService from "../services/Queue";
 import WhatsApp from "../services/WhatsApp";
-import express from "express";
 
 const router = express.Router();
 
@@ -10,8 +10,8 @@ router.get("/", async (req, res) => {
     
     const whatsappStats = whatsapp ? whatsapp.getClientStats() : { isAuthenticated: false, unreadChats: 0 };
     
-    const downloaderQueueCount = queueService ? await queueService.getDownloaderQueueCount() : 0;
-    
+    const downloaderQueueCount =  await queueService.getDownloaderQueueCount() ;
+    const lastDownload =await queueService.getLastSuccessfulDownload() ;
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
@@ -20,7 +20,8 @@ router.get("/", async (req, res) => {
             unreadChats: whatsappStats.unreadChats
         },
         queues: {
-            downloader: downloaderQueueCount
+            size: downloaderQueueCount,
+            lastDownload
         }
     });
 });

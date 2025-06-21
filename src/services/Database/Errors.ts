@@ -1,7 +1,7 @@
 import { PrismaClient } from "../../generated/prisma";
 
 class ErrorsRepository {
-  private prisma: PrismaClient;
+  private readonly prisma: PrismaClient;
   constructor() {
     this.prisma = new PrismaClient();
   }

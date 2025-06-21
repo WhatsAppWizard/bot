@@ -54,9 +54,7 @@ class ConfigService {
   }
 
   public static getDownloadPaths(platform?: string) {
-    if (!platform) {
-      platform = "default";
-    }
+    platform ??= "default";
     if (!fs.existsSync(path.join(this.PublicPath, "media", platform))) {
       fs.mkdirSync(path.join(this.PublicPath, "media", platform), {
         recursive: true,

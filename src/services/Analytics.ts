@@ -2,7 +2,7 @@ import { PostHog } from "posthog-node";
 import ConfigService from "./Config";
 
 class AnalyticsService {
-  private client: PostHog;
+  private readonly client: PostHog;
 
   constructor() {
     const apiKey = ConfigService.getPostHogApiKey();
@@ -43,12 +43,6 @@ class AnalyticsService {
   }
 
 
-  updateUserProperties(userId: string, userProperties: Record<string, any>) {
-    this.client.identify({
-      distinctId: userId,
-      properties: userProperties,
-    });
-  }
 
   flush() {
     this.client.flush();

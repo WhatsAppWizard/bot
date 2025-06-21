@@ -8,7 +8,8 @@ import DownloadRepository from "./Database/Downloads";
 import { downloadService } from "./Download";
 
 class QueueService extends EventEmitter {
-  private redis: IORedis;
+  private readonly redis: IORedis;
+  
 
   private downloaderQueue!: Queue;
   private downloaderWorker!: Worker;
@@ -38,7 +39,8 @@ class QueueService extends EventEmitter {
       connection: this.redis,
       defaultJobOptions: {
         removeOnComplete: true,
-        removeOnFail: false,
+        removeOnFail: true,
+
       },
     });
     this.downloaderWorker = new Worker<IDownloadJob, IDownloadJobResponse>(
@@ -79,7 +81,7 @@ class QueueService extends EventEmitter {
       },
       {
         connection: this.redis,
-        concurrency: 1,
+        concurrency: 4,
       }
     );
   }
@@ -105,6 +107,12 @@ class QueueService extends EventEmitter {
     this.downloaderWorker.on("progress", (jobId, progress) => {
       this.emit(DownloadEvents.DownloadProgress, { jobId, progress });
     });
+  }
+
+  public async getLastSuccessfulDownload(): Promise<IDownloadJobResponse | null> {
+    const jobs = await this.downloaderQueue.getJobs(["completed"], 0, -1, true);
+    if (jobs.length === 0) return null;
+    return jobs[jobs.length - 1].returnvalue;
   }
 }
 

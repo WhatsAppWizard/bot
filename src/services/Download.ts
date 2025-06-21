@@ -9,7 +9,6 @@ import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
 import { fileTypeFromBuffer } from "file-type";
 
 class DownloadService {
-  constructor() {}
   private async TikTokVideoDownloader(
     url: string
   ): Promise<IDownloadedOnDisk[]> {
@@ -28,11 +27,13 @@ class DownloadService {
 
   private async YouTubeDownloader(url: string): Promise<IDownloadedOnDisk[]> {
     const yt = await this.Youtube(url);
-    return [{
-      path: yt,
-      type: "video",
-      platform: "YouTube"
-    }];
+    return [
+      {
+        path: yt,
+        type: "video",
+        platform: "YouTube",
+      },
+    ];
   }
 
   private async TwitterDownloader(url: string): Promise<IDownloadedOnDisk[]> {

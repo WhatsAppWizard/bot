@@ -2,19 +2,19 @@ import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
 import { shortenerService } from "./Shortener";
 
+import QRCode from "qr-image";
+import { DownloadStatus } from "../generated/prisma";
 import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
 import DownloadRepository from "./Database/Downloads";
-import { DownloadStatus } from "../generated/prisma";
 import ErrorsRepository from "./Database/Errors";
+import StickerRepository from "./Database/Stickers";
+import UserRepository from "./Database/Users";
 import FileService from "./Files";
-import QRCode from "qr-image";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
-import StickerRepository from "./Database/Stickers";
 import TelegramService from "./Telegram";
-import UserRepository from "./Database/Users";
 
 class WhatsApp {
   private client: Client;
@@ -158,21 +158,9 @@ class WhatsApp {
     const command = message.body.toLowerCase().trim();
 
     const commands = [
-      "hi whatsapp wizard",
-      "hi",
-      "hello",
-      "hey",
-      "whatsapp wizard",
-      "wwz",
-      "wwz bot",
-      "wwz bot help",
+   
       ".",
-      "help",
-      "commands",
-      "start",
-      "stickers",
-      "اهلا",
-      "download",
+     
       "/",
       "..",
     ];
@@ -217,6 +205,8 @@ class WhatsApp {
           platform: message.deviceType,
           message: JSON.stringify(message),
         });
+
+       await chatInfo.sendSeen();
 
         if (hasMedia) {
           const { mimetype, data } = await message.downloadMedia();
@@ -294,8 +284,7 @@ class WhatsApp {
           const { download, downloadId } = job.returnvalue;
           const { message } = job.data;
 
-          for (let index = 0; index < download.length; index++) {
-            const element = download[index];
+          for (const element of download) {
             const { path, platform } = element;
 
             // Get the message object
@@ -307,11 +296,13 @@ class WhatsApp {
               // For YouTube, shorten the URL and send it
               try {
                 const shortenedUrl = await shortenerService.shortenUrl(path);
+                const MessageText = `Here's your YouTube video URL:\n ${shortenedUrl} \n Be Advised this is a Temporary fix `;
+
                 if (!userMessageOnWhatsApp) {
                   const chat = await this.client.getChatById(message.from);
-                  await chat.sendMessage(`Here's your YouTube video URL:\n ${shortenedUrl} \n Be Advised this is a Temporary fix `);
+                  await chat.sendMessage(MessageText);
                 } else {
-                  await userMessageOnWhatsApp.reply(`Here's your YouTube video URL:\n${shortenedUrl}`);
+                  await userMessageOnWhatsApp.reply(MessageText);
                 }
               } catch (error) {
                 console.error('Error shortening YouTube URL:', error);
@@ -334,6 +325,8 @@ class WhatsApp {
               }
               await FileService.removeFile(path);
             }
+            
+        
 
             this.analyticsService.trackEvent(
               "download_response",
@@ -365,7 +358,7 @@ class WhatsApp {
             message.id._serialized
           );
           userMessageOnWhatsApp.reply(
-            "Believe me, I tried my best to download this file, but I couldn't. 🫠😔 \n\nPlease try again later"
+            "Believe me, I tried my best to download this file, but something went error, don't worry i'm automatically reported it to Mahmoud and he will fix it soon. 🫠😔 \n\nPlease try again later"
           );
 
           const ErrorRepo = new ErrorsRepository();
