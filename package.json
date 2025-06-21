@@ -39,6 +39,6 @@
     "qr-image": "^3.2.0",
     "snapsaver-downloader": "^1.0.3",
     "telegraf": "^4.16.3",
-    "whatsapp-web.js": "^1.27.0"
+    "whatsapp-web.js": "^1.30.0"
   }
 }

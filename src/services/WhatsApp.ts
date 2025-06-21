@@ -141,7 +141,7 @@ class WhatsApp {
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "call_rejected",
       });
-      this.telegramService.sendMessage(`Call from ${call.from} rejected.`);
+   await   this.telegramService.sendMessage(`Call from ${call.from} rejected.`);
       const userId = call.from;
       if (!userId) return;
       const user = await this.client.getContactById(userId);
@@ -229,7 +229,7 @@ class WhatsApp {
 
         if (body. length > 2 && !hasMedia && links.length ==0 ) {
             const response = await this.agentService.sendMessage(body,user.id);
-            message.reply(response);
+          await  message.reply(response);
         }
 
         if (links.length > 0) {
@@ -261,7 +261,7 @@ class WhatsApp {
               message: JSON.stringify(message),
             });
 
-            this.queueService.addJobToDownloaderQueue(
+          await  this.queueService.addJobToDownloaderQueue(
               `${timestamp}-${userNumber}`,
               {
                 url: urls[0], // For now, we Support only one file at a time.

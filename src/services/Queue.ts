@@ -109,10 +109,10 @@ class QueueService extends EventEmitter {
     });
   }
 
-  public async getLastSuccessfulDownload(): Promise<IDownloadJobResponse | null> {
+  public async getLastSuccessfulDownload(): Promise<any | null> {
     const jobs = await this.downloaderQueue.getJobs(["completed"], 0, -1, true);
     if (jobs.length === 0) return null;
-    return jobs[jobs.length - 1].returnvalue;
+    return jobs[jobs.length - 1];
   }
 }
 

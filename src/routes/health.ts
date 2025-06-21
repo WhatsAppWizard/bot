@@ -6,12 +6,11 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
     const whatsapp = req.app.get("whatsapp") as WhatsApp;
-    const queueService = QueueService.getInstance();
     
     const whatsappStats = whatsapp ? whatsapp.getClientStats() : { isAuthenticated: false, unreadChats: 0 };
     
-    const downloaderQueueCount =  await queueService.getDownloaderQueueCount() ;
-    const lastDownload =await queueService.getLastSuccessfulDownload() ;
+    const downloaderQueueCount =  await QueueService.getInstance().getDownloaderQueueCount() ;
+    const lastDownload =await QueueService.getInstance().getLastSuccessfulDownload() ;
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),

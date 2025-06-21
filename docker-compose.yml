@@ -13,7 +13,6 @@ services:
       # to point to your external PostgreSQL and Redis instances.
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      
       - NODE_ENV=production
       - PORT=3000
       - BOT_TOKEN=${BOT_TOKEN}
