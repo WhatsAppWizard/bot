@@ -36,11 +36,10 @@ class WhatsApp {
   private readonly stickers: StickerRepository;
   private readonly downloads: DownloadRepository;
 
-  public isAuthenticated: boolean = false;
   public unreadChats: number = 0;
 
   private readonly stats:IWhatsAppStats = {
-    isAuthenticated: this.isAuthenticated,
+    isAuthenticated: false,
     unreadChats: 0,
     lastMessageDate: null,
     lastStickerDate: null,
@@ -77,7 +76,7 @@ class WhatsApp {
 
   private setupWhatsAppEventHandlers() {
     this.client.on("authenticated", () => {
-      this.isAuthenticated = true;
+      this.stats.isAuthenticated = true;
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "whatsapp_authenticated",
       });
@@ -87,7 +86,7 @@ class WhatsApp {
     });
 
     this.client.on("auth_failure", () => {
-      this.isAuthenticated = false;
+      this.stats.isAuthenticated = false;
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "whatsapp_authenticated_failure",
       });
@@ -98,7 +97,7 @@ class WhatsApp {
 
     this.client.on("disconnected", (reason) => {
       console.log("Client was disconnected", reason);
-      this.isAuthenticated = false;
+      this.stats.isAuthenticated = false;
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "whatsapp_disconnected",
       });
@@ -108,7 +107,7 @@ class WhatsApp {
     });
 
     this.client.once("ready", () => {
-      this.isAuthenticated = true;
+      this.stats.isAuthenticated = true;
       this.telegramService.sendMessage("WhatsApp client is ready!");
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "whatsapp_ready",
@@ -442,7 +441,7 @@ class WhatsApp {
     this.onTelegramMessage();
    await this.getUnreadChats();
     setInterval(async () => {
-      if (this.isAuthenticated) {
+      if (this.stats.isAuthenticated) {
         await this.getUnreadChats();
       }
     }, 5000);
