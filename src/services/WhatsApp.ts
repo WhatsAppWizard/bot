@@ -141,7 +141,9 @@ class WhatsApp {
       this.analyticsService.trackEvent("system_event", "system", {
         event_type: "call_rejected",
       });
-   await   this.telegramService.sendMessage(`Call from ${call.from} rejected.`);
+      await this.telegramService.sendMessage(
+        `Call from ${call.from} rejected.`
+      );
       const userId = call.from;
       if (!userId) return;
       const user = await this.client.getContactById(userId);
@@ -150,26 +152,20 @@ class WhatsApp {
       await chat.sendMessage(
         "You're Blocked due to spammy behavior. \n\nPlease contact us on our website to unblock you."
       );
-
+      
       await user.block();
     });
   }
   private async setupBotCommands(message: Message) {
     const command = message.body.toLowerCase().trim();
 
-    const commands = [
-   
-      ".",
-     
-      "/",
-      "..",
-    ];
+    const commands = [".", "/", ".."];
 
     if (commands.includes(command)) {
       message.reply(
         `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`
       );
-    } 
+    }
   }
   private setupMessageHandler() {
     // Listen for new messages
@@ -206,30 +202,33 @@ class WhatsApp {
           message: JSON.stringify(message),
         });
 
-       await chatInfo.sendSeen();
+        await chatInfo.sendSeen();
 
         if (hasMedia) {
           const { mimetype, data } = await message.downloadMedia();
 
           if (mimetype === "image/jpeg" || mimetype === "image/png") {
-            this.stickers.create(user.id, timestamp, body);
+          await  this.stickers.create(user.id, timestamp, body);
             const media = new MessageMedia(mimetype, data);
 
-            message.reply(media, "", {
+         await   message.reply(media, "", {
               sendMediaAsSticker: true,
               stickerAuthor: "wwz.gitnasr.com",
               stickerName: "WhatsApp Wizard v3.0",
             });
 
             this.analyticsService.trackEvent("sticker_created", user.id);
-          }else { 
-            message.reply("We only support creating stickers from Image files only")
+          } else {
+          await  message.reply(
+              "We only support creating stickers from Image files only"
+            );
           }
         }
 
-        if (body. length > 2 && !hasMedia && links.length ==0 ) {
-            const response = await this.agentService.sendMessage(body,user.id);
-          await  message.reply(response);
+        if (body.length > 2 && !hasMedia && links.length == 0) {
+          const response = await this.agentService.sendMessage(body, user.id);
+          await chatInfo.sendSeen();
+          await message.reply(response);
         }
 
         if (links.length > 0) {
@@ -261,7 +260,7 @@ class WhatsApp {
               message: JSON.stringify(message),
             });
 
-          await  this.queueService.addJobToDownloaderQueue(
+            await this.queueService.addJobToDownloaderQueue(
               `${timestamp}-${userNumber}`,
               {
                 url: urls[0], // For now, we Support only one file at a time.
@@ -305,13 +304,17 @@ class WhatsApp {
                   await userMessageOnWhatsApp.reply(MessageText);
                 }
               } catch (error) {
-                console.error('Error shortening YouTube URL:', error);
+                console.error("Error shortening YouTube URL:", error);
                 // Fallback to original URL if shortening fails
                 if (!userMessageOnWhatsApp) {
                   const chat = await this.client.getChatById(message.from);
-                  await chat.sendMessage(`Here's your YouTube video URL:\n${path}`);
+                  await chat.sendMessage(
+                    `Here's your YouTube video URL:\n${path}`
+                  );
                 } else {
-                  await userMessageOnWhatsApp.reply(`Here's your YouTube video URL:\n${path}`);
+                  await userMessageOnWhatsApp.reply(
+                    `Here's your YouTube video URL:\n${path}`
+                  );
                 }
               }
             } else {
@@ -325,8 +328,6 @@ class WhatsApp {
               }
               await FileService.removeFile(path);
             }
-            
-        
 
             this.analyticsService.trackEvent(
               "download_response",
@@ -392,35 +393,20 @@ class WhatsApp {
 
   private async getUnreadChats() {
     try {
-      const HashMapOfNumbersAndUnreadMessages: Map<string, Message[]> = new Map<
-        string,
-        Message[]
-      >();
+      let totalUnreadMessages = 0;
       // Get all chats
       const chats = await this.client.getChats();
-
-      let count = 0;
       for (const chat of chats) {
-        if (chat.unreadCount > 0) {
-          // get the unread messages to handle them
-          const messages = (await chat.fetchMessages({ limit: Infinity }))
-            .reverse()
-            .slice(0, chat.unreadCount);
-
-          HashMapOfNumbersAndUnreadMessages.set(chat.id._serialized, messages);
-
-          count += chat.unreadCount;
+        if (!chat.isGroup && !chat.isReadOnly) {
+          // Count unread messages in each chat
+          const unreadCount = chat.unreadCount || 0;
+          totalUnreadMessages += unreadCount;
         }
       }
 
-      // Update unread count if changed
-      if (count !== this.unreadChats) {
-        this.unreadChats = count;
-      }
-
-      return HashMapOfNumbersAndUnreadMessages;
+     
     } catch (error) {
-      console.error("Error checking unread messages:", error);
+     
       this.analyticsService.trackEvent("error_checking_unread_messages", "", {
         error,
       });
@@ -431,9 +417,9 @@ class WhatsApp {
     }
   }
 
-  private RegisterMessageCheck() {
+  private async RegisterMessageCheck() {
     this.onTelegramMessage();
-    this.getUnreadChats();
+   await this.getUnreadChats();
     setInterval(async () => {
       if (this.isAuthenticated) {
         await this.getUnreadChats();
