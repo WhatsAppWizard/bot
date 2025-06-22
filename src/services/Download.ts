@@ -1,12 +1,12 @@
-import ConfigService from "./Config";
-import { FacebookError } from "../errors/FacebookError";
-import FileService from "./Files";
-import { IDownloadedOnDisk } from "../types/Download";
-import InstagramError from "../errors/InstagramError";
-import { SnapSaver } from "snapsaver-downloader";
 import axios from "axios";
-import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
 import { fileTypeFromBuffer } from "file-type";
+import { SnapSaver } from "snapsaver-downloader";
+import { detectPlatformFromURL } from "snapsaver-downloader/dist/utils";
+import { FacebookError } from "../errors/FacebookError";
+import InstagramError from "../errors/InstagramError";
+import { IDownloadedOnDisk } from "../types/Download";
+import ConfigService from "./Config";
+import FileService from "./Files";
 
 class DownloadService {
   private async TikTokVideoDownloader(
@@ -79,13 +79,30 @@ class DownloadService {
     const endpoint = `https://nayan-video-downloader.vercel.app/tikdown?url=${encodeURIComponent(
       url
     )}`;
-    const res = await axios.get(endpoint);
-
-    if (res.status !== 200 || !res.data.data.video) {
-      throw new Error("Failed to fetch video URL.");
+    let lastError: any;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await axios.get(endpoint);
+        if (res.status !== 200 || !res.data.data.video) {
+          throw new Error("Failed to fetch video URL.");
+        }
+        return res.data.data.video;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 3) {
+          
+          console.warn(
+            `Attempt ${attempt} failed. Retrying... Error: ${error}`
+          );
+          
+          // Set a delay before retrying
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          
+          continue;
+        }
+      }
     }
-
-    return res.data.data.video;
+    throw lastError ?? new Error("Failed to fetch video URL after 3 attempts.");
   }
 
   private detectPlatform(url: string): string {
@@ -143,8 +160,8 @@ class DownloadService {
     const DownloadPath = ConfigService.getDownloadPaths(platform);
     const timestamp = Date.now();
 
-    let extension = fileType?.ext || "bin";
-    let mime = fileType?.mime || "";
+    let extension = fileType?.ext ?? "bin";
+    let mime = fileType?.mime ?? "";
 
     let type: "video" | "image";
 
@@ -170,20 +187,27 @@ class DownloadService {
     try {
       const result = await SnapSaver(url);
       if (!result.success)
-        throw new errorClass(result.message || "Unknown error");
+        throw new errorClass(result.message ?? "Unknown error");
       // Facebook is the only one that returns a different structure as Resolution,
       // we need pick the SD resolution since we are targeting the mobile version
       if (platform === "Facebook") {
         if (!result.data) throw new errorClass("No data found");
 
-        const SDResolution = result.data?.media?.filter((item) =>
-          item.resolution?.includes("SD")
-        )[0];
-        result.data.media = SDResolution
-          ? [SDResolution]
-          : result.data.media
-          ? [result.data.media[result.data.media.length - 1]]
-          : [];
+        let SDResolution;
+        if (result.data?.media) {
+          SDResolution = result.data.media.filter((item: any) =>
+            item.resolution?.includes("SD")
+          )[0];
+        }
+        let mediaArr: any[];
+        if (SDResolution) {
+          mediaArr = [SDResolution];
+        } else if (result.data.media) {
+          mediaArr = [result.data.media[result.data.media.length - 1]];
+        } else {
+          mediaArr = [];
+        }
+        result.data.media = mediaArr;
       }
       const mediaUrls = (result.data?.media || [])
         .map((item) => item.url)
