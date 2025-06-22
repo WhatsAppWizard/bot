@@ -85,7 +85,7 @@ class QueueService extends EventEmitter {
           age: 60 * 60 * 24, // Remove failed jobs after 24 hours
           count: 100, // Keep the last 100 failed jobs
         },
-        
+
       }
     );
   }
