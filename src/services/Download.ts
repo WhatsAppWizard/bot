@@ -155,13 +155,13 @@ class DownloadService {
   ): Promise<IDownloadedOnDisk> {
     const res = await axios.get(url, { responseType: "arraybuffer" });
     const buffer = Buffer.from(res.data);
-    const fileType = await fileTypeFromBuffer(buffer);
+    const fileTypeCheck = await fileTypeFromBuffer(buffer);
 
     const DownloadPath = ConfigService.getDownloadPaths(platform);
     const timestamp = Date.now();
 
-    let extension = fileType?.ext ?? "bin";
-    let mime = fileType?.mime ?? "";
+    let extension = fileTypeCheck?.ext ?? "bin";
+    let mime = fileTypeCheck?.mime ?? "";
 
     let type: "video" | "image";
 

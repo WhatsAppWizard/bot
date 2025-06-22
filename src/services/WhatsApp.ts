@@ -1,9 +1,14 @@
-import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
-import { DownloadEvents, DownloadJob } from "../types/Download";
-import { shortenerService } from "./Shortener";
-
+import mongoose from "mongoose";
 import QRCode from "qr-image";
+import {
+  Client,
+  Message,
+  MessageMedia,
+  RemoteAuth
+} from "whatsapp-web.js";
+import { MongoStore } from "wwebjs-mongo";
 import { DownloadStatus } from "../generated/prisma";
+import { DownloadEvents, DownloadJob } from "../types/Download";
 import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
@@ -14,6 +19,7 @@ import UserRepository from "./Database/Users";
 import FileService from "./Files";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
+import { shortenerService } from "./Shortener";
 import TelegramService from "./Telegram";
 interface IWhatsAppStats {
   isAuthenticated: boolean;
@@ -38,19 +44,24 @@ class WhatsApp {
 
   public unreadChats: number = 0;
 
-  private readonly stats:IWhatsAppStats = {
+  private readonly stats: IWhatsAppStats = {
     isAuthenticated: false,
     unreadChats: 0,
     lastMessageDate: null,
     lastStickerDate: null,
     lastDownloadDate: null,
-  }
+  };
 
   constructor() {
+    mongoose.connect(ConfigService.getMongoose())
+    
+    const store = new MongoStore({ mongoose: mongoose });
+
     this.client = new Client({
       puppeteer: ConfigService.getPuppeteerOptions(),
-      authStrategy: new LocalAuth({
-        dataPath: ConfigService.getSessionPath(),
+      authStrategy: new RemoteAuth({
+        store: store,
+        backupSyncIntervalMs: 300000,
       }),
     });
 
@@ -165,7 +176,7 @@ class WhatsApp {
       await chat.sendMessage(
         "You're Blocked due to spammy behavior. \n\nPlease contact us on our website to unblock you."
       );
-      
+
       await user.block();
     });
   }
@@ -224,10 +235,10 @@ class WhatsApp {
           const { mimetype, data } = await message.downloadMedia();
 
           if (mimetype === "image/jpeg" || mimetype === "image/png") {
-          await  this.stickers.create(user.id, timestamp, body);
+            await this.stickers.create(user.id, timestamp, body);
             const media = new MessageMedia(mimetype, data);
 
-         await   message.reply(media, "", {
+            await message.reply(media, "", {
               sendMediaAsSticker: true,
               stickerAuthor: "wwz.gitnasr.com",
               stickerName: "WhatsApp Wizard v3.0",
@@ -236,7 +247,7 @@ class WhatsApp {
 
             this.analyticsService.trackEvent("sticker_created", user.id);
           } else {
-          await  message.reply(
+            await message.reply(
               "We only support creating stickers from Image files only"
             );
           }
@@ -285,8 +296,7 @@ class WhatsApp {
                 message,
               }
             );
-        await chatInfo.sendSeen();
-
+            await chatInfo.sendSeen();
           }
         }
       } catch (error) {
@@ -424,9 +434,7 @@ class WhatsApp {
         }
       }
       this.stats.unreadChats = totalUnreadMessages;
-     
     } catch (error) {
-     
       this.analyticsService.trackEvent("error_checking_unread_messages", "", {
         error,
       });
@@ -439,7 +447,7 @@ class WhatsApp {
 
   private async RegisterMessageCheck() {
     this.onTelegramMessage();
-   await this.getUnreadChats();
+    await this.getUnreadChats();
     setInterval(async () => {
       if (this.stats.isAuthenticated) {
         await this.getUnreadChats();

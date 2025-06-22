@@ -5,7 +5,8 @@ import fs from "fs";
 import path from "path";
 
 class ConfigService {
-  private static PublicPath: string = path.join(process.cwd(), "public");  public static getPuppeteerOptions() {
+  private static PublicPath: string = path.join(process.cwd(), "public");
+  public static getPuppeteerOptions() {
     return {
       headless: true,
       args: [
@@ -19,11 +20,12 @@ class ConfigService {
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
       ],
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePaths.chrome,
+      executablePath:
+        process.env.PUPPETEER_EXECUTABLE_PATH || chromePaths.chrome,
     };
   }
   private static isProduction() {
-   return process.env.NODE_ENV == "production"
+    return process.env.NODE_ENV == "production";
   }
   public static getSessionPath() {
     return process.env.NODE_ENV === "production" ? "BTA" : "DEV";
@@ -68,7 +70,7 @@ class ConfigService {
   }
 
   public static getRedis() {
-    return process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+    return process.env.REDIS_URL || "redis://127.0.0.1:6379";
   }
 
   public static getHardcodedRatelimit() {
@@ -80,6 +82,10 @@ class ConfigService {
   }
   public static getPostHogHost() {
     return process.env.POSTHOG_HOST;
+  }
+
+  public static getMongoose() {
+    return process.env.MONGODB_URI!;
   }
 }
 
