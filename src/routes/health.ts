@@ -14,10 +14,7 @@ router.get("/", async (req, res) => {
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
-        whatsapp: {
-            isAuthenticated: whatsappStats.isAuthenticated,
-            unreadChats: whatsappStats.unreadChats
-        },
+        whatsapp: whatsappStats,
         queues: {
             size: downloaderQueueCount,
             lastDownload

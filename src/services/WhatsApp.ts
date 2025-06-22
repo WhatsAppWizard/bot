@@ -15,23 +15,37 @@ import FileService from "./Files";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
 import TelegramService from "./Telegram";
-
+interface IWhatsAppStats {
+  isAuthenticated: boolean;
+  unreadChats: number;
+  lastMessageDate: Date | null;
+  lastStickerDate: Date | null;
+  lastDownloadDate: Date | null;
+}
 class WhatsApp {
-  private client: Client;
-  private qrCodePath: string;
+  private readonly client: Client;
+  private readonly qrCodePath: string;
 
   public queueService: QueueService;
-  private telegramService: TelegramService;
-  private rateLimiterService: RateLimiterService;
-  private analyticsService = AnalyticsService;
-  private agentService = new AgentService();
+  private readonly telegramService: TelegramService;
+  private readonly rateLimiterService: RateLimiterService;
+  private readonly analyticsService = AnalyticsService;
+  private readonly agentService = new AgentService();
 
-  private users: UserRepository;
-  private stickers: StickerRepository;
-  private downloads: DownloadRepository;
+  private readonly users: UserRepository;
+  private readonly stickers: StickerRepository;
+  private readonly downloads: DownloadRepository;
 
   public isAuthenticated: boolean = false;
   public unreadChats: number = 0;
+
+  private readonly stats:IWhatsAppStats = {
+    isAuthenticated: this.isAuthenticated,
+    unreadChats: 0,
+    lastMessageDate: null,
+    lastStickerDate: null,
+    lastDownloadDate: null,
+  }
 
   constructor() {
     this.client = new Client({
@@ -202,6 +216,9 @@ class WhatsApp {
           message: JSON.stringify(message),
         });
 
+        // Update stats
+        this.stats.lastMessageDate = new Date(timestamp * 1000);
+
         await chatInfo.sendSeen();
 
         if (hasMedia) {
@@ -216,6 +233,7 @@ class WhatsApp {
               stickerAuthor: "wwz.gitnasr.com",
               stickerName: "WhatsApp Wizard v3.0",
             });
+            this.stats.lastStickerDate = new Date(timestamp * 1000);
 
             this.analyticsService.trackEvent("sticker_created", user.id);
           } else {
@@ -268,6 +286,8 @@ class WhatsApp {
                 message,
               }
             );
+        await chatInfo.sendSeen();
+
           }
         }
       } catch (error) {
@@ -339,6 +359,7 @@ class WhatsApp {
             downloadId,
             DownloadStatus.SENT
           );
+          this.stats.lastDownloadDate = new Date();
         } catch (error) {
           console.error("Error in onQueueMessage:", error);
 
@@ -403,7 +424,7 @@ class WhatsApp {
           totalUnreadMessages += unreadCount;
         }
       }
-
+      this.stats.unreadChats = totalUnreadMessages;
      
     } catch (error) {
      
@@ -428,10 +449,7 @@ class WhatsApp {
   }
 
   getClientStats() {
-    return {
-      isAuthenticated: this.isAuthenticated,
-      unreadChats: this.unreadChats,
-    };
+    return this.stats;
   }
 
   async clearQRCodes() {
