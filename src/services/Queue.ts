@@ -1,4 +1,4 @@
-import { Queue, Worker } from "bullmq";
+import { Queue, Worker, } from "bullmq";
 
 import { EventEmitter } from "events";
 import IORedis from "ioredis";
@@ -37,11 +37,6 @@ class QueueService extends EventEmitter {
   private setupDownloaderQueue() {
     this.downloaderQueue = new Queue<IDownloadJob, IDownloadJobResponse>("whatsapp-bot-downloader-queue", {
       connection: this.redis,
-      defaultJobOptions: {
-        removeOnComplete: true,
-        removeOnFail: true,
-
-      },
     });
     this.downloaderWorker = new Worker<IDownloadJob, IDownloadJobResponse>(
       "whatsapp-bot-downloader-queue",
@@ -82,6 +77,15 @@ class QueueService extends EventEmitter {
       {
         connection: this.redis,
         concurrency: 4,
+        removeOnComplete: {
+          age: 60 * 60 * 24, // Remove completed jobs after 24 hours
+          count: 100, // Keep the last 100 completed jobs
+        },
+        removeOnFail: {
+          age: 60 * 60 * 24, // Remove failed jobs after 24 hours
+          count: 100, // Keep the last 100 failed jobs
+        },
+        
       }
     );
   }
