@@ -9,16 +9,12 @@ router.get("/", async (req, res) => {
     
     const whatsappStats = whatsapp ? whatsapp.getClientStats() : { isAuthenticated: false, unreadChats: 0 };
     
-    const downloaderQueueCount =  await QueueService.getInstance().getDownloaderQueueCount() ;
-    const lastDownload =await QueueService.getInstance().getLastSuccessfulDownload() ;
+    const queue =  await QueueService.getInstance().getDownloaderQueueCount() ;
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
         whatsapp: whatsappStats,
-        queues: {
-            size: downloaderQueueCount,
-            lastDownload
-        }
+        queues: queue
     });
 });
 

@@ -94,8 +94,16 @@ class QueueService extends EventEmitter {
     await this.downloaderQueue.add(name, job);
   }
 
-  public async getDownloaderQueueCount(): Promise<number> {
-    return await this.downloaderQueue.count();
+  public async getDownloaderQueueCount(): Promise<any> {
+    return {
+      waiting: await this.downloaderQueue.getWaitingCount(),
+      active: await this.downloaderQueue.getActiveCount(),
+      completed: await this.downloaderQueue.getCompletedCount(),
+      failed: await this.downloaderQueue.getFailedCount(),
+      delayed: await this.downloaderQueue.getDelayedCount(),
+      // Last successful download
+      lastSuccessfulDownload: await this.getLastSuccessfulDownload(),
+    }
   }
 
   private queueEvents() {
