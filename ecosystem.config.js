@@ -7,6 +7,7 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 5000,
       autorestart: true,
+      cron_restart: '0 */2 * * *',
       out_file: "./logs/out.log",
       error_file: "./logs/error.log",
       env: {
