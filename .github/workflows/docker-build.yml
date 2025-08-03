@@ -7,6 +7,7 @@ on:
     paths-ignore:
       - '**/*.md'
 
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,12 +41,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
           cache-from: |
             type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-wizard:buildcache
             type=gha
           cache-to: |
             type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/whatsapp-wizard:buildcache,mode=max
             type=gha,mode=max
+          platforms: linux/amd64
           build-args: |
             BUILDKIT_INLINE_CACHE=1
