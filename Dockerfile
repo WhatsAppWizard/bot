@@ -32,6 +32,9 @@ RUN addgroup -g 1001 -S nodejs && \
     mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
     chown -R nextjs:nodejs /app
 
+# Create persistent storage volumes for auth data
+VOLUME ["/app/BTA", "/app/DEV", "/app/public/media", "/app/public/qrcodes","/app/.wwebjs_cache","/app/.wwebjs_auth"]
+
 # Copy package files and prisma schema first for better caching
 COPY package*.json ./
 COPY prisma ./prisma/
