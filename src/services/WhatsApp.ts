@@ -52,6 +52,7 @@ class WhatsApp {
       authStrategy: new LocalAuth({
         dataPath: ConfigService.getSessionPath(),
       }),
+      webVersion:"2.3000.1026578094"
     });
 
     this.rateLimiterService = new RateLimiterService();
