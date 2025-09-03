@@ -81,7 +81,11 @@ class WhatsApp {
         authStrategy: new RemoteAuth({
           store: store,
           backupSyncIntervalMs: 60000,
+  
         }),
+        puppeteer: {
+          ...ConfigService.getPuppeteerOptions()
+        }
       });
    
     
