@@ -29,14 +29,14 @@ WORKDIR /app
 # Create app user for security and necessary directories in a single layer
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
-    mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTA /app/DEV && \
+    mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTAA /app/DEV /app/.wwebjs_cache /app/.wwebjs_auth && \
     chown -R nextjs:nodejs /app
 
 # Create persistent storage volumes for auth data
-VOLUME ["/app/BTA", "/app/DEV", "/app/public/media", "/app/public/qrcodes","/app/.wwebjs_cache","/app/.wwebjs_auth"]
+VOLUME ["/app/BTAA", "/app/DEV", "/app/public/media", "/app/public/qrcodes","/app/.wwebjs_cache","/app/.wwebjs_auth"]
 
 # Copy package files and prisma schema first for better caching
-COPY package*.json ./
+COPY package*.json ./ 
 COPY prisma ./prisma/
 
 # Install dependencies in a separate stage for better caching
@@ -66,6 +66,13 @@ COPY --from=build /app/build ./build
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/ecosystem.config.js ./
 COPY package*.json ./
+
+# Ensure proper ownership and permissions for the nextjs user
+RUN mkdir -p /app/.wwebjs_cache /app/.wwebjs_auth && \
+    chown -R nextjs:nodejs /app && \
+    chmod -R 755 /app
+
+# Copy entrypoint scrip
 
 # Switch to non-root user
 USER nextjs

@@ -1,8 +1,13 @@
-import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
+import dotenv from "dotenv";
+      dotenv.config();
+
+import { Client, Message, MessageMedia, RemoteAuth } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
 import { shortenerService } from "./Shortener";
 
+import mongoose from "mongoose";
 import QRCode from "qr-image";
+import { MongoStore } from 'wwebjs-mongo';
 import { DownloadStatus } from "../generated/prisma";
 import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
@@ -23,7 +28,7 @@ interface IWhatsAppStats {
   lastDownloadDate: Date | null;
 }
 class WhatsApp {
-  private readonly client: Client;
+  private  client: Client  = null!;
   private readonly qrCodePath: string;
 
   public queueService: QueueService;
@@ -47,14 +52,7 @@ class WhatsApp {
   }
 
   constructor() {
-    this.client = new Client({
-      puppeteer: ConfigService.getPuppeteerOptions(),
-      authStrategy: new LocalAuth({
-        dataPath: ConfigService.getSessionPath(),
-      }),
-      webVersion:"2.3000.1026578094"
-    });
-
+    this.start();
     this.rateLimiterService = new RateLimiterService();
 
     ConfigService.ensurePublicDirectoryExists();
@@ -67,6 +65,32 @@ class WhatsApp {
     this.downloads = new DownloadRepository();
 
     this.telegramService = TelegramService.getInstance();
+
+
+  }
+  private async start() {
+    try {
+
+  
+
+      await mongoose.connect(process.env.MONGO_URL!);
+      console.log("Conectado a MongoDB");
+    
+      const store = new MongoStore({ mongoose: mongoose });
+    
+      const client = new Client({
+        authStrategy: new RemoteAuth({
+          store: store,
+          backupSyncIntervalMs: 60000,
+        }),
+      });
+   
+    
+      this.client = client;
+      await this.initialize()
+    } catch (error) {
+      console.error("❌ Error connecting to MongoDB:", error);
+    }
   }
 
   async initialize() {
@@ -74,6 +98,8 @@ class WhatsApp {
 
     this.setupWhatsAppEventHandlers();
   }
+
+
 
   private setupWhatsAppEventHandlers() {
     this.client.on("authenticated", () => {
@@ -126,11 +152,20 @@ class WhatsApp {
         });
       }
 
+      // Send Screenshot to Telegram
+      // take Screenshot for the screen
+
+
+
+      this.telegramService.sendQRcode(this.qrCodePath);
+
       // Set up message event handler
       this.onQueueMessage();
       this.setupMessageHandler();
       this.RegisterMessageCheck();
       this.registerBlockOnCalls();
+
+
     });
 
     this.client.on("qr", async (qr) => {
@@ -144,7 +179,7 @@ class WhatsApp {
         );
       } else {
         this.telegramService.QrCodeMessageId =
-          await this.telegramService.sendQRcode(this.qrCodePath);
+          await this.telegramService.sendQRcode(this.qrCodePath) as number;
       }
     });
   }

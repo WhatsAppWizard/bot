@@ -24,7 +24,7 @@ async function main() {
   // Make WhatsApp instance accessible to routes
   app.set("whatsapp", whatsapp);
 
-  await whatsapp.initialize();
+//  await whatsapp.initialize();
 }
 
 function setupExitHandlers() {

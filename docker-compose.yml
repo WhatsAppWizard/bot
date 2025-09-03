@@ -9,29 +9,22 @@ services:
     container_name: whatsapp-wizard-app
     restart: unless-stopped
     environment:
-      # IMPORTANT: You must set these variables in your .env file
-      # to point to your external PostgreSQL and Redis instances.
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
       - NODE_ENV=production
       - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
       - BOT_TOKEN=${BOT_TOKEN}
       - CHAT_ID=${CHAT_ID}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
-      # Puppeteer specific for containerized environment
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
     ports:
       - "3000:3000"
     volumes:
-      # Persist WhatsApp session data, media files, and logs
-      - whatsapp_sessions:/app/BTA
-      - whatsapp_dev_sessions:/app/DEV
       - whatsapp_auth:/app/.wwebjs_auth
       - whatsapp_cache:/app/.wwebjs_cache
-      - whatsapp_media:/app/public
-      - whatsapp_logs:/app/logs
+      - whatsapp_profile:/app/BTAA
     networks:
       - whatsapp-network
     healthcheck:
@@ -42,18 +35,9 @@ services:
       start_period: 40s
 
 volumes:
-  whatsapp_sessions:
-    driver: local
-  whatsapp_dev_sessions:
-    driver: local
   whatsapp_auth:
-    driver: local
   whatsapp_cache:
-    driver: local
-  whatsapp_media:
-    driver: local
-  whatsapp_logs:
-    driver: local
+  whatsapp_profile:
 
 networks:
   whatsapp-network:

@@ -60,7 +60,7 @@ class TelegramService extends EventEmitter {
 
       return image.message_id;
     } catch (error) {
-      throw new Error("Error sending QR code: " + error);
+   
     }
   }
 
@@ -69,6 +69,22 @@ class TelegramService extends EventEmitter {
       await this.bot.telegram.sendMessage(this.chatId, message);
     } catch (error) {
       throw new Error("Error sending message: " + error);
+    }
+  }
+
+  public async sendScreenshot(screenshotPath: string) {
+    try {
+      await this.bot.telegram.sendPhoto(
+        this.chatId,
+        {
+          source: screenshotPath,
+        },
+        {
+          caption: "Screenshot taken at " + new Date().toLocaleString(),
+        }
+      );
+    } catch (error) {
+      throw new Error("Error sending screenshot: " + error);
     }
   }
 
