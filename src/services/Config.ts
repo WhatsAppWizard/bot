@@ -113,6 +113,8 @@ class ConfigService {
   public static getPostHogHost() {
     return process.env.POSTHOG_HOST;
   }
-}
+  public static getMongoDbUri() {
+    return process.env.MONGODB_URI || "";
+  }}
 
 export default ConfigService;

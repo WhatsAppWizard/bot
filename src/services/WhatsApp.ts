@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-      dotenv.config();
+
 
 import { Client, Message, MessageMedia, RemoteAuth } from "whatsapp-web.js";
 import { DownloadEvents, DownloadJob } from "../types/Download";
@@ -73,7 +72,7 @@ class WhatsApp {
 
   
 
-      await mongoose.connect(process.env.MONGO_URL!);
+      await mongoose.connect(ConfigService.getMongoDbUri());
       console.log("Conectado a MongoDB");
     
       const store = new MongoStore({ mongoose: mongoose });
