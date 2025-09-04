@@ -1,13 +1,9 @@
-
-
-import { Client, Message, MessageMedia, RemoteAuth } from "whatsapp-web.js";
-import { DownloadEvents, DownloadJob } from "../types/Download";
-import { shortenerService } from "./Shortener";
-
-import mongoose from "mongoose";
+import puppeteer from "puppeteer-extra";
+import stealth from "puppeteer-extra-plugin-stealth";
 import QRCode from "qr-image";
-import { MongoStore } from 'wwebjs-mongo';
+import { Client, LocalAuth, Message, MessageMedia } from "whatsapp-web.js";
 import { DownloadStatus } from "../generated/prisma";
+import { DownloadEvents, DownloadJob } from "../types/Download";
 import { AgentService } from "./Agent";
 import AnalyticsService from "./Analytics";
 import ConfigService from "./Config";
@@ -18,6 +14,7 @@ import UserRepository from "./Database/Users";
 import FileService from "./Files";
 import QueueService from "./Queue";
 import RateLimiterService from "./Ratelimiter";
+import { shortenerService } from "./Shortener";
 import TelegramService from "./Telegram";
 interface IWhatsAppStats {
   isAuthenticated: boolean;
@@ -27,7 +24,7 @@ interface IWhatsAppStats {
   lastDownloadDate: Date | null;
 }
 class WhatsApp {
-  private  client: Client  = null!;
+  private client: Client = null!;
   private readonly qrCodePath: string;
 
   public queueService: QueueService;
@@ -42,13 +39,13 @@ class WhatsApp {
 
   public unreadChats: number = 0;
 
-  private readonly stats:IWhatsAppStats = {
+  private readonly stats: IWhatsAppStats = {
     isAuthenticated: false,
     unreadChats: 0,
     lastMessageDate: null,
     lastStickerDate: null,
     lastDownloadDate: null,
-  }
+  };
 
   constructor() {
     this.start();
@@ -64,33 +61,28 @@ class WhatsApp {
     this.downloads = new DownloadRepository();
 
     this.telegramService = TelegramService.getInstance();
-
-
   }
   private async start() {
     try {
-
-  
-
-      await mongoose.connect(ConfigService.getMongoDbUri());
-      console.log("Conectado a MongoDB");
-    
-      const store = new MongoStore({ mongoose: mongoose });
-    
-      const client = new Client({
-        authStrategy: new RemoteAuth({
-          store: store,
-          backupSyncIntervalMs: 60000,
-  
-        }),
-        puppeteer: {
-          ...ConfigService.getPuppeteerOptions()
-        }
+      puppeteer.use(stealth());
+      puppeteer.defaultArgs({
+       ...ConfigService.getPuppeteerOptions(),
       });
-   
-    
+
+      const client = new Client({
+      
+        authStrategy: new LocalAuth(),
+        puppeteer: {
+          executablePath: puppeteer.executablePath(),
+       headless:false
+
+        },
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3029.110 Safari/537.3",
+      });
+
       this.client = client;
-      await this.initialize()
+      await this.initialize();
     } catch (error) {
       console.error("❌ Error connecting to MongoDB:", error);
     }
@@ -101,8 +93,6 @@ class WhatsApp {
 
     this.setupWhatsAppEventHandlers();
   }
-
-
 
   private setupWhatsAppEventHandlers() {
     this.client.on("authenticated", () => {
@@ -158,8 +148,6 @@ class WhatsApp {
       // Send Screenshot to Telegram
       // take Screenshot for the screen
 
-
-
       this.telegramService.sendQRcode(this.qrCodePath);
 
       // Set up message event handler
@@ -167,8 +155,6 @@ class WhatsApp {
       this.setupMessageHandler();
       this.RegisterMessageCheck();
       this.registerBlockOnCalls();
-
-
     });
 
     this.client.on("qr", async (qr) => {
@@ -182,7 +168,7 @@ class WhatsApp {
         );
       } else {
         this.telegramService.QrCodeMessageId =
-          await this.telegramService.sendQRcode(this.qrCodePath) as number;
+          (await this.telegramService.sendQRcode(this.qrCodePath)) as number;
       }
     });
   }
@@ -204,7 +190,7 @@ class WhatsApp {
       await chat.sendMessage(
         "You're Blocked due to spammy behavior. \n\nPlease contact us on our website to unblock you."
       );
-      
+
       await user.block();
     });
   }
@@ -219,118 +205,12 @@ class WhatsApp {
       );
     }
   }
-  private setupMessageHandler() {
+  private async setupMessageHandler() {
     // Listen for new messages
+    await this.processUnreadMessages();
     this.client.on("message", async (message) => {
-      try {
-        const chatInfo = await message.getChat();
-        if (chatInfo.isGroup || chatInfo.isReadOnly) {
-          // Ignore group messages and read-only chats
-          return;
-        }
-        await this.setupBotCommands(message);
-        const { body, timestamp, hasMedia, links } = message;
-        const contactInfo = await message.getContact();
-        const userNumber = await contactInfo.getFormattedNumber();
-        const countryCode = userNumber.split(" ")[0];
-
-        const userPayload = {
-          name: contactInfo.pushname || userNumber,
-          phone: userNumber,
-          platform: message.deviceType,
-          country: countryCode,
-        };
-
-        let user = await this.users.createOrUpdateUser(userPayload);
-        this.analyticsService.identifyUser(user.id, {
-          ...userPayload,
-          firstSeen: new Date(),
-        });
-
-        this.analyticsService.trackEvent("message_received", user.id, {
-          has_media: message.hasMedia,
-          has_links: links.length > 0,
-          platform: message.deviceType,
-          message: JSON.stringify(message),
-        });
-
-        // Update stats
-        this.stats.lastMessageDate = new Date(timestamp * 1000);
-
-        await chatInfo.sendSeen();
-
-        if (hasMedia) {
-          const { mimetype, data } = await message.downloadMedia();
-
-          if (mimetype === "image/jpeg" || mimetype === "image/png") {
-          await  this.stickers.create(user.id, timestamp, body);
-            const media = new MessageMedia(mimetype, data);
-
-         await   message.reply(media, "", {
-              sendMediaAsSticker: true,
-              stickerAuthor: "wwz.gitnasr.com",
-              stickerName: "WhatsApp Wizard v3.0",
-            });
-            this.stats.lastStickerDate = new Date(timestamp * 1000);
-
-            this.analyticsService.trackEvent("sticker_created", user.id);
-          } else {
-          await  message.reply(
-              "We only support creating stickers from Image files only"
-            );
-          }
-        }
-
-        if (body.length > 2 && !hasMedia && links.length == 0) {
-          const response = await this.agentService.sendMessage(body, user.id);
-          await chatInfo.sendSeen();
-          await message.reply(response);
-        }
-
-        if (links.length > 0) {
-          // Check if the user is rate limited
-          const isRateLimited = await this.rateLimiterService.isRatedLimited(
-            userNumber
-          );
-          if (isRateLimited) {
-            this.analyticsService.trackEvent("rate_limited", user.id);
-            message.reply(
-              "To save our resources, Please wait a moment before sending another request. R409"
-            );
-            return;
-          }
-          const urls = links.map((urls) => urls.link);
-
-          if (urls) {
-            const url = urls[0];
-            const downloadRepo = new DownloadRepository();
-
-            const DownloadInDatabase = await downloadRepo.create(
-              url,
-              "UNKNOWN",
-              user.id,
-              timestamp
-            );
-
-            this.analyticsService.trackEvent("download_requested", user.id, {
-              message: JSON.stringify(message),
-            });
-
-            await this.queueService.addJobToDownloaderQueue(
-              `${timestamp}-${userNumber}`,
-              {
-                url: urls[0], // For now, we Support only one file at a time.
-                downloadId: DownloadInDatabase.id,
-                message,
-              }
-            );
-        await chatInfo.sendSeen();
-
-          }
-        }
-      } catch (error) {
-        console.log(error, "Error in message handler");
-      }
+      
+      await this.processMessage(message);
     });
   }
   private onQueueMessage() {
@@ -463,9 +343,7 @@ class WhatsApp {
         }
       }
       this.stats.unreadChats = totalUnreadMessages;
-     
     } catch (error) {
-     
       this.analyticsService.trackEvent("error_checking_unread_messages", "", {
         error,
       });
@@ -476,9 +354,153 @@ class WhatsApp {
     }
   }
 
+  private async processMessage(message: Message) {
+    try {
+      if (!message) return;
+      const chatInfo = await message.getChat();
+      if (!chatInfo) return;
+      if (chatInfo.isGroup || chatInfo.isReadOnly) {
+        // Ignore group messages and read-only chats
+        return;
+      }
+      await this.setupBotCommands(message);
+      const { body, timestamp, hasMedia, links } = message;
+      const contactInfo = await message.getContact();
+      const userNumber = await contactInfo.getFormattedNumber();
+      const countryCode = userNumber.split(" ")[0];
+
+      const userPayload = {
+        name: contactInfo.pushname || userNumber,
+        phone: userNumber,
+        platform: message.deviceType,
+        country: countryCode,
+      };
+
+      let user = await this.users.createOrUpdateUser(userPayload);
+      this.analyticsService.identifyUser(user.id, {
+        ...userPayload,
+        firstSeen: new Date(),
+      });
+
+      this.analyticsService.trackEvent("message_received", user.id, {
+        has_media: message.hasMedia,
+        has_links: links.length > 0,
+        platform: message.deviceType,
+        message: JSON.stringify(message),
+      });
+
+      // Update stats
+      this.stats.lastMessageDate = new Date(timestamp * 1000);
+
+      await chatInfo.sendSeen();
+
+      if (hasMedia) {
+        const { mimetype, data } = await message.downloadMedia();
+
+        if (mimetype === "image/jpeg" || mimetype === "image/png") {
+          await this.stickers.create(user.id, timestamp, body);
+          const media = new MessageMedia(mimetype, data);
+
+          await message.reply(media, "", {
+            sendMediaAsSticker: true,
+            stickerAuthor: "wwz.gitnasr.com",
+            stickerName: "WhatsApp Wizard v3.0",
+          });
+          this.stats.lastStickerDate = new Date(timestamp * 1000);
+
+          this.analyticsService.trackEvent("sticker_created", user.id);
+        } else {
+          await message.reply(
+            "We only support creating stickers from Image files only"
+          );
+        }
+      }
+
+      if (body.length > 2 && !hasMedia && links.length == 0) {
+        const response = await this.agentService.sendMessage(body, user.id);
+        await chatInfo.sendSeen();
+        await message.reply(response);
+      }
+
+      if (links.length > 0) {
+        // Check if the user is rate limited
+        const isRateLimited = await this.rateLimiterService.isRatedLimited(
+          userNumber
+        );
+        if (isRateLimited) {
+          this.analyticsService.trackEvent("rate_limited", user.id);
+          message.reply(
+            "To save our resources, Please wait a moment before sending another request. R409"
+          );
+          return;
+        }
+        const urls = links.map((urls) => urls.link);
+
+        if (urls) {
+          const url = urls[0];
+          const downloadRepo = new DownloadRepository();
+
+          const DownloadInDatabase = await downloadRepo.create(
+            url,
+            "UNKNOWN",
+            user.id,
+            timestamp
+          );
+
+          this.analyticsService.trackEvent("download_requested", user.id, {
+            message: JSON.stringify(message),
+          });
+
+          await this.queueService.addJobToDownloaderQueue(
+            `${timestamp}-${userNumber}`,
+            {
+              url: urls[0], // For now, we Support only one file at a time.
+              downloadId: DownloadInDatabase.id,
+              message,
+            }
+          );
+          await chatInfo.sendSeen();
+        }
+      }
+    } catch (error) {
+      console.log(error, "Error in message processing");
+    }
+  }
+
+  public async processUnreadMessages() {
+    try {
+      const chats = await this.client.getChats();
+      if (!chats || chats.length === 0) return;
+      console.log(`Found ${chats.length} chats. Processing unread messages...`);
+      for (const chat of chats) {
+        if (!chat) continue;
+        if (!chat.isGroup && !chat.isReadOnly && chat.unreadCount > 0) {
+          const messages = await chat.fetchMessages({
+            limit: chat.unreadCount,
+          });
+          for (const message of messages) {
+            console.log(message.from)
+            if (!message.fromMe) {
+              await this.processMessage(message);
+            }
+          }
+        }
+      }
+      console.log("Processed all unread messages.");
+    } catch (error) {
+      console.error("Error processing unread messages:", error);
+      this.analyticsService.trackEvent("error_processing_unread_messages", "", {
+        error,
+      });
+      this.telegramService.sendMessage(
+        "Error processing unread messages: " + error
+      );
+    }
+  }
+
   private async RegisterMessageCheck() {
     this.onTelegramMessage();
-   await this.getUnreadChats();
+    await this.getUnreadChats();
     setInterval(async () => {
       if (this.stats.isAuthenticated) {
         await this.getUnreadChats();
