@@ -88,7 +88,7 @@ class WhatsAppService implements IWhatsAppService {
     puppeteer.use(stealth());
   const monogInstance = await mongoose.connect(ConfigService.getMongoDbUri());
   loggerService.info("MongoDB connected successfully");
-  const store = new MongoStore(monogInstance)
+  const store = new MongoStore({mongoose: monogInstance})
     // Create WhatsApp client
     this.client = new Client({
       authStrategy: new RemoteAuth({store,backupSyncIntervalMs:60000}),
