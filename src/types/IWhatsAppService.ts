@@ -1,5 +1,5 @@
 import { Client } from "whatsapp-web.js";
-import { IWhatsAppStats } from "./StatsService";
+import { IWhatsAppStats } from "./IWhatsAppStats";
 
 
 export interface IWhatsAppService {
