@@ -73,9 +73,7 @@ class WhatsApp {
       
         authStrategy: new LocalAuth(),
         puppeteer: {
-          executablePath: puppeteer.executablePath(),
-       headless:false
-
+          ...ConfigService.getPuppeteerOptions(),
         },
         userAgent:
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3029.110 Safari/537.3",
