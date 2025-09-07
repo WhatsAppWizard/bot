@@ -2,11 +2,11 @@ import dotenv from "dotenv";
 
 dotenv.config(); 
 import TelegramService from "./services/Telegram";
-import WhatsApp from "./services/WhatsApp";
 import app from "./services/Express";
 import fs from "fs";
 import path from "path";
 import router from "./routes/health";
+import WhatsAppService from "./services/WhatsApp";
 
 
 const telegramService = TelegramService.getInstance();
@@ -17,7 +17,8 @@ async function main() {
     fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  const whatsapp = new WhatsApp();
+  const whatsapp = new WhatsAppService();
+  await whatsapp.start();
 
   app.use("/api/health", router);
 
