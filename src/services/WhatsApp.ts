@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
-import { Client, LocalAuth } from "whatsapp-web.js";
+import { Client, LocalAuth, RemoteAuth } from "whatsapp-web.js";
 import ConfigService from "./Config";
 import WhatsAppEventHandler from "./WhatsApp/WhatsAppEventHandler";
 import StatsService from "./StatsService";
@@ -8,6 +8,8 @@ import { IWhatsAppStats } from "../types/IWhatsAppStats";
 import loggerService from "./Logger";
 import analyticsWrapper from "./AnalyticsWrapper";
 import { IWhatsAppService } from "../types/IWhatsAppService";
+import mongoose from "mongoose";
+import { MongoStore } from "wwebjs-mongo";
 
 class WhatsAppService implements IWhatsAppService {
   private client: Client | null = null;
@@ -84,14 +86,14 @@ class WhatsAppService implements IWhatsAppService {
 
   private async initialize(): Promise<void> {
     puppeteer.use(stealth());
-  
-
+  const monogInstance = await mongoose.connect(ConfigService.getMongoDbUri());
+  loggerService.info("MongoDB connected successfully");
+  const store = new MongoStore(monogInstance)
     // Create WhatsApp client
     this.client = new Client({
-      authStrategy: new LocalAuth(),
+      authStrategy: new RemoteAuth({store,backupSyncIntervalMs:60000}),
       puppeteer: {
         ...ConfigService.getPuppeteerOptions(),
-        headless: false,
       },
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3029.110 Safari/537.3",
