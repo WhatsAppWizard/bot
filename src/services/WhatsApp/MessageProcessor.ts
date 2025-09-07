@@ -86,16 +86,7 @@ class MessageProcessor implements IMessageProcessor {
     }
   }
 
-  async processUnreadMessages(): Promise<void> {
-    try {
-      // This method will be called by the main WhatsApp service
-      // with the client instance to fetch unread messages
-      loggerService.info('Processing unread messages requested');
-    } catch (error) {
-      loggerService.logError(error as Error, 'MessageProcessor.processUnreadMessages');
-      analyticsWrapper.trackErrorEvent('unread_messages_error', 'MessageProcessor', error);
-    }
-  }
+
 
   private async getOrCreateUser(message: Message): Promise<any> {
     try {

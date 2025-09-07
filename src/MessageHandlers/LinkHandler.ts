@@ -46,7 +46,7 @@ export class LinkHandler implements ILinkHandler {
       if (isRateLimited) {
         analyticsWrapper.trackRateLimitEvent(userId, userNumber);
         await message.reply(
-          "To save our resources, Please wait a moment before sending another request. R409"
+          "To save our resources, Please wait a moment before sending another request."
         );
         return;
       }

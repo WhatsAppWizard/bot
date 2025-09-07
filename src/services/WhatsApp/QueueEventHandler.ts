@@ -132,7 +132,7 @@ class QueueEventHandler implements IQueueEventHandler {
   private async handleYouTubeDownload(
     path: string, 
     userMessageOnWhatsApp: Message, 
-    message: any, 
+    message: Message, 
     client: Client
   ): Promise<void> {
     try {
@@ -173,7 +173,7 @@ class QueueEventHandler implements IQueueEventHandler {
   private async handleMediaDownload(
     path: string, 
     userMessageOnWhatsApp: Message, 
-    message: any, 
+    message: Message, 
     client: Client
   ): Promise<void> {
     try {

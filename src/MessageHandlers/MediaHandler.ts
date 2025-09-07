@@ -5,7 +5,7 @@ import loggerService from '../services/Logger';
 import analyticsWrapper from '../services/AnalyticsWrapper';
 
 export class MediaHandler implements IMediaHandler {
-  private readonly supportedMimeTypes = ['image/jpeg', 'image/png'];
+  private readonly supportedMimeTypes = ['image/jpeg', 'image/png',"video/mp4"];
   private readonly stickerRepository: StickerRepository;
 
   constructor() {
