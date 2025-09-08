@@ -17,6 +17,17 @@ export class CommandHandler implements ICommandHandler {
     try {
       const startTime = Date.now();
       
+      // Check if this is a group chat - if so, don't respond to commands
+      const chatInfo = await message.getChat();
+      if (chatInfo.isGroup) {
+        loggerService.debug('Skipping command response in group chat', {
+          userId,
+          command: message.body,
+          messageId: message.id._serialized
+        });
+        return;
+      }
+      
       const response = `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from Facebook, TikTok, Instagram, YouTube, or Twitter, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, and I will make a sticker for you.`;
       
       await message.reply(response);
