@@ -21,11 +21,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     DISPLAY=:99 \
     CHROME_BIN=/usr/bin/chromium-browser \
     CHROME_PATH=/usr/lib/chromium/ \
-    DBUS_SESSION_BUS_ADDRESS=/dev/null \
-    # Logging configuration
-    LOG_LEVEL=info \
-    NODE_ENV=production \
-    APP_VERSION=1.2.0
+    DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 # Set working directory
 WORKDIR /app
