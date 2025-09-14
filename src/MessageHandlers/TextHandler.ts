@@ -21,19 +21,8 @@ export class TextHandler implements IMessageHandler {
   async handle(message: Message, userId: string): Promise<void> {
     try {
       const startTime = Date.now();
-      const chatInfo = await message.getChat();
       
       if (!message.body) {
-        return;
-      }
-
-      // Check if this is a group chat - if so, don't respond to text messages
-      if (chatInfo.isGroup) {
-        loggerService.debug('Skipping text response in group chat', {
-          userId,
-          messageId: message.id._serialized,
-          messageLength: message.body.length
-        });
         return;
       }
 
@@ -62,12 +51,7 @@ export class TextHandler implements IMessageHandler {
       analyticsWrapper.trackErrorEvent('text_handler_error', 'TextHandler', error);
       
       try {
-      const chatInfo = await message.getChat();
-
-        // Only send error reply if not in group chat
-        if (!chatInfo.isGroup) {
-          await message.reply("Sorry, I'm having trouble processing your message right now. Please try again later.");
-        }
+        await message.reply("Sorry, I'm having trouble processing your message right now. Please try again later.");
       } catch (replyError) {
         loggerService.logError(replyError as Error, 'TextHandler.fallbackReply', {
           userId,

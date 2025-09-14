@@ -19,13 +19,9 @@ export class MediaHandler implements IMediaHandler {
   async handle(message: Message, userId: string): Promise<void> {
     try {
       const startTime = Date.now();
-      const chatInfo = await message.getChat();
       
       if (!message.hasMedia) {
-        // Only send "no media found" message in private chats, not in groups
-        if (!chatInfo.isGroup) {
-          await message.reply("No media found in message");
-        }
+        await message.reply("No media found in message");
         return;
       }
 
@@ -34,10 +30,7 @@ export class MediaHandler implements IMediaHandler {
       if (this.supportedMimeTypes.includes(mimetype)) {
         await this.handleImageSticker(message, mimetype, data, userId);
       } else {
-        // Only send unsupported media type message in private chats, not in groups
-        if (!chatInfo.isGroup) {
-          await message.reply("We only support creating stickers from Image files only");
-        }
+        await message.reply("We only support creating stickers from Image files only");
       }
 
       const processingTime = Date.now() - startTime;

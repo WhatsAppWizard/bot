@@ -40,34 +40,14 @@ class MessageProcessor implements IMessageProcessor {
         return;
       }
 
-      // Skip read-only chats
-      if (chatInfo.isReadOnly) {
-        loggerService.debug('Skipping read-only chat message', {
+      // Skip group messages and read-only chats
+      if (chatInfo.isGroup || chatInfo.isReadOnly) {
+        loggerService.debug('Skipping group or read-only chat message', {
           messageId: message.id._serialized,
+          isGroup: chatInfo.isGroup,
           isReadOnly: chatInfo.isReadOnly
         });
         return;
-      }
-
-      // For group chats, only process links and media, skip text messages
-      if (chatInfo.isGroup) {
-        const hasLinks = message.links && message.links.length > 0;
-        const hasMedia = message.hasMedia;
-        
-        if (!hasLinks && !hasMedia) {
-          loggerService.debug('Skipping text message in group chat', {
-            messageId: message.id._serialized,
-            isGroup: chatInfo.isGroup
-          });
-          return;
-        }
-        
-        loggerService.debug('Processing link/media message in group chat', {
-          messageId: message.id._serialized,
-          isGroup: chatInfo.isGroup,
-          hasLinks,
-          hasMedia
-        });
       }
 
       // Mark message as seen
