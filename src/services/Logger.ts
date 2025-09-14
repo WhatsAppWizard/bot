@@ -1,6 +1,5 @@
-// Note: Install these packages: npm install winston winston-loki
-// import { createLogger, format, transports } from 'winston';
-// import { LokiTransport } from 'winston-loki';
+import { createLogger, format, transports } from 'winston';
+import LokiTransport from 'winston-loki';
 
 export enum LogLevel {
   ERROR = 'error',
@@ -24,13 +23,12 @@ class LoggerService implements ILogger {
   }
 
   private initializeLogger() {
-    // TODO: Uncomment when winston packages are installed
-    /*
     const lokiTransport = new LokiTransport({
       host: process.env.LOKI_HOST || 'http://localhost:3100',
       labels: {
-        service: 'whatsapp-bot',
-        environment: process.env.NODE_ENV || 'development'
+        service: 'whatsapp-wizard',
+        environment: process.env.NODE_ENV || 'development',
+        version: process.env.APP_VERSION || '1.2.0'
       },
       json: true,
       format: format.combine(
@@ -82,15 +80,6 @@ class LoggerService implements ILogger {
         new transports.File({ filename: 'logs/rejections.log' })
       ]
     });
-    */
-    
-    // Temporary console logger until winston is installed
-    this.logger = {
-      error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta),
-      warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta),
-      info: (message: string, meta?: any) => console.info(`[INFO] ${message}`, meta),
-      debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta)
-    };
   }
 
   error(message: string, meta?: any): void {

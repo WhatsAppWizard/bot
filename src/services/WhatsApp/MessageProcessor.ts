@@ -1,13 +1,13 @@
 import { Message } from 'whatsapp-web.js';
-import { IMessageHandler } from '../../types/IMessageHandler';
 import { CommandHandler } from '../../MessageHandlers/CommandHandler';
-import { MediaHandler } from '../../MessageHandlers/MediaHandler';
 import { LinkHandler } from '../../MessageHandlers/LinkHandler';
+import { MediaHandler } from '../../MessageHandlers/MediaHandler';
 import { TextHandler } from '../../MessageHandlers/TextHandler';
+import { IMessageHandler } from '../../types/IMessageHandler';
+import { IMessageProcessor } from '../../types/IMessageProcessor';
+import analyticsWrapper from '../AnalyticsWrapper';
 import UserRepository from '../Database/Users';
 import loggerService from '../Logger';
-import analyticsWrapper from '../AnalyticsWrapper';
-import { IMessageProcessor } from '../../types/IMessageProcessor';
 
 class MessageProcessor implements IMessageProcessor {
   private readonly handlers: IMessageHandler[];
@@ -61,8 +61,14 @@ class MessageProcessor implements IMessageProcessor {
           });
           return;
         }
-        
-        loggerService.debug('Processing link/media message in group chat', {
+        if (hasMedia){
+            loggerService.debug('Skipping media message in group chat', {
+            messageId: message.id._serialized,
+            isGroup: chatInfo.isGroup
+          });
+          return;
+        }
+        loggerService.debug('Processing link message in group chat', {
           messageId: message.id._serialized,
           isGroup: chatInfo.isGroup,
           hasLinks,
