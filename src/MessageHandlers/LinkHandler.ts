@@ -40,14 +40,19 @@ export class LinkHandler implements ILinkHandler {
 
       const contactInfo = await message.getContact();
       const userNumber = await contactInfo.getFormattedNumber();
+      const chatInfo = await message.getChat();
 
       // Check rate limiting
       const isRateLimited = await this.rateLimiterService.isRatedLimited(userNumber);
       if (isRateLimited) {
         analyticsWrapper.trackRateLimitEvent(userId, userNumber);
-        await message.reply(
-          "To save our resources, Please wait a moment before sending another request."
-        );
+        
+        // Only send rate limit message in private chats, not in groups
+        if (!chatInfo.isGroup) {
+          await message.reply(
+            "To save our resources, Please wait a moment before sending another request."
+          );
+        }
         return;
       }
 
@@ -57,7 +62,10 @@ export class LinkHandler implements ILinkHandler {
       if (url && this.isSupportedDomain(url)) {
         await this.processDownloadRequest(message, url, userId, userNumber);
       } else {
-        await message.reply("Sorry, I don't support downloads from this platform yet.");
+        // Only send unsupported platform message in private chats, not in groups
+        if (!chatInfo.isGroup) {
+          await message.reply("Sorry, I don't support downloads from this platform yet.");
+        }
       }
 
       const processingTime = Date.now() - startTime;
