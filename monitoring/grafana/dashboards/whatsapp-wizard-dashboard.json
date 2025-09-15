@@ -28,7 +28,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Real-time application logs with filtering and search",
+      "description": "Real-time application logs with advanced filtering and search",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -55,7 +55,7 @@
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-  "prettifyLogMessage": true,
+        "prettifyLogMessage": true,
         "showCommonLabels": true,
         "showLabels": true,
         "showTime": true,
@@ -69,7 +69,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{service=\"whatsapp-wizard\"} |~ \"(handled successfully|WhatsApp Event:|starting|started|error)\"",
+          "expr": "{service=\"whatsapp-wizard\", environment=\"${environment}\"} ${log_level_filter} ${context_filter} ${user_filter} ${search_filter}",
           "queryType": "",
           "refId": "A"
         }
@@ -82,7 +82,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Error rate over time",
+      "description": "Error rate over time with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -163,7 +163,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", level=\"error\"} [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", level=\"error\"} ${context_filter} ${user_filter} [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -176,7 +176,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "WhatsApp events and message processing",
+      "description": "WhatsApp events and message processing with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -257,7 +257,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"whatsapp\"} |~ \"WhatsApp Event:\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"whatsapp\"} ${user_filter} |~ \"WhatsApp Event:\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -270,7 +270,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Download events and processing",
+      "description": "Download events and processing with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -351,7 +351,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"download\"} |~ \"Download Event:\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"download\"} ${user_filter} |~ \"Download Event:\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -364,7 +364,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Message processing time distribution",
+      "description": "Message processing rate with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -438,14 +438,14 @@
           "sort": "none"
         }
       },
-          "targets": [
+      "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"message_handler\"} ${user_filter} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -458,7 +458,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Log level distribution",
+      "description": "Log level distribution with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -502,14 +502,14 @@
           "sort": "none"
         }
       },
-          "targets": [
+      "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum by (level) (count_over_time({service=\"whatsapp-wizard\"} [$__interval]))",
+          "expr": "sum by (level) (count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\"} ${context_filter} ${user_filter} [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -522,7 +522,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Error analysis and top errors",
+      "description": "Error analysis and top errors by context",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -572,19 +572,19 @@
         "showHeader": true
       },
       "pluginVersion": "10.1.0",
-          "targets": [
+      "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "topk(10, sum by (context) (count_over_time({service=\"whatsapp-wizard\", level=\"error\"} [$__interval])))",
+          "expr": "topk(10, sum by (context, errorType) (count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", level=\"error\"} ${user_filter} [$__interval])))",
           "queryType": "",
           "refId": "A"
         }
       ],
-      "title": "Top Errors",
+      "title": "Top Errors by Context",
       "type": "table"
     },
     {
@@ -592,7 +592,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "User activity and engagement metrics",
+      "description": "User activity and engagement metrics with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -663,7 +663,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum by (userId) (count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
+          "expr": "sum by (userId) (count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -676,7 +676,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Key performance metrics",
+      "description": "Key performance metrics with filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -728,7 +728,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"message_handler\"} ${user_filter} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "Total Messages"
         },
@@ -738,7 +738,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"download\"} |~ \"Download Event:\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"download\"} ${user_filter} |~ \"Download Event:\" [$__interval]))",
           "queryType": "",
           "refId": "Total Downloads"
         },
@@ -748,7 +748,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count(count by (userId) (count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval])))",
+          "expr": "count(count by (userId) (count_over_time({service=\"whatsapp-wizard\", environment=\"${environment}\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval])))",
           "queryType": "",
           "refId": "Active Users"
         }
@@ -861,6 +861,90 @@
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All Contexts",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Context",
+        "multi": true,
+        "name": "context",
+        "options": [
+          {
+            "selected": true,
+            "text": "All Contexts",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "whatsapp",
+            "value": "whatsapp"
+          },
+          {
+            "selected": false,
+            "text": "download",
+            "value": "download"
+          },
+          {
+            "selected": false,
+            "text": "message_handler",
+            "value": "message_handler"
+          },
+          {
+            "selected": false,
+            "text": "unknown",
+            "value": "unknown"
+          }
+        ],
+        "query": "whatsapp,download,message_handler,unknown",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All Users",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "User ID",
+        "multi": true,
+        "name": "userId",
+        "options": [
+          {
+            "selected": true,
+            "text": "All Users",
+            "value": "$__all"
+          }
+        ],
+        "query": "sum by (userId) (count_over_time({service=\"whatsapp-wizard\"} [$__interval]))",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Search Text",
+        "multi": false,
+        "name": "search",
+        "options": [],
+        "query": "",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "textbox"
       }
     ]
   },
@@ -872,6 +956,6 @@
   "timezone": "",
   "title": "WhatsApp Wizard - Analytics & Monitoring Dashboard",
   "uid": "whatsapp-wizard-main",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

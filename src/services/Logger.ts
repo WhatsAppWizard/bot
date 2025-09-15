@@ -150,7 +150,7 @@ class LoggerService implements ILogger {
         level: 'info',
         context: 'whatsapp',
         event: event,
-        userId: data.userId || 'system'
+        userId: data?.userId || 'system'
       }
     });
   }
@@ -181,7 +181,7 @@ class LoggerService implements ILogger {
         context: 'download',
         event: event,
         downloadId: downloadId,
-        userId: data.userId || 'system'
+        userId: data?.userId || 'system'
       }
     });
   }
