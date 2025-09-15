@@ -43,7 +43,6 @@ class ConfigService {
         "--disable-background-timer-throttling",
         "--disable-renderer-backgrounding",
         "--disable-backgrounding-occluded-windows",
-  
       ],
       executablePath:
         process.env.PUPPETEER_EXECUTABLE_PATH || chromePaths.chrome,
@@ -115,6 +114,18 @@ class ConfigService {
   }
   public static getMongoDbUri() {
     return process.env.MONGODB_URI || "";
-  }}
+  }
+
+  public static getLokiConfig() {
+    return {
+      host: process.env.LOKI_HOST || "http://localhost:3100",
+      username: process.env.LOKI_USERNAME || "",
+      password: process.env.LOKI_PASSWORD || "",
+    };
+  }
+  public static getEnv() {
+    return process.env.NODE_ENV || "development";
+  }
+}
 
 export default ConfigService;

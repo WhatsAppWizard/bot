@@ -64,7 +64,7 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
       
       // Setup message event listener
       client.on("message", async (message) => {
-        await this.messageProcessor.processMessage(message);
+        await this.messageProcessor.processMessage(message, client.info.wid._serialized);
       });
 
       loggerService.info('Message handling setup completed');
@@ -88,7 +88,7 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
           });
           for (const message of messages) {
             if (!message.fromMe) {
-              await this.messageProcessor.processMessage(message);
+              await this.messageProcessor.processMessage(message, client.info.wid._serialized);
             }
           }
         }

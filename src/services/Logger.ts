@@ -1,5 +1,6 @@
 import { createLogger, format, transports } from 'winston';
 import LokiTransport from 'winston-loki';
+import ConfigService from './Config';
 
 export enum LogLevel {
   ERROR = 'error',
@@ -23,11 +24,12 @@ class LoggerService implements ILogger {
   }
 
   private initializeLogger() {
+    const lokiConfig = ConfigService.getLokiConfig();
     const lokiTransport = new LokiTransport({
-      host: process.env.LOKI_HOST || 'http://localhost:3100',
+      host: lokiConfig.host,
       labels: {
         service: 'whatsapp-wizard',
-        environment: process.env.NODE_ENV || 'development',
+        environment: ConfigService.getEnv(),
         version: process.env.APP_VERSION || '1.2.0'
       },
       json: true,
@@ -36,7 +38,9 @@ class LoggerService implements ILogger {
         format.errors({ stack: true }),
         format.json()
       ),
-      onConnectionError: (err: any) => console.error('Loki connection error:', err)
+      onConnectionError: (err: any) => console.error('Loki connection error:', err),
+      basicAuth: `${lokiConfig.username}:${lokiConfig.password}`
+    
     });
 
     this.logger = createLogger({

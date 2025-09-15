@@ -23,7 +23,7 @@ class MessageProcessor implements IMessageProcessor {
     this.userRepository = new UserRepository();
   }
 
-  async processMessage(message: Message): Promise<void> {
+  async processMessage(message: Message, botId:string): Promise<void> {
     const startTime = Date.now();
     
     try {
@@ -65,6 +65,26 @@ class MessageProcessor implements IMessageProcessor {
             loggerService.debug('Skipping media message in group chat', {
             messageId: message.id._serialized,
             isGroup: chatInfo.isGroup
+          });
+          return;
+        }
+        const mentionedIds = message.mentionedIds || [];
+        if (mentionedIds.length === 0) {
+          loggerService.debug('Skipping unmentioned message in group chat', {
+            messageId: message.id._serialized,
+            isGroup: chatInfo.isGroup
+          });
+          return;
+        }
+
+        // Check if the bot was mentioned in the message
+        const isBotMentioned = message.mentionedIds.includes(botId);
+        if (!isBotMentioned) {
+          loggerService.debug('Skipping message in group chat not mentioning bot', {
+            messageId: message.id._serialized,
+            isGroup: chatInfo.isGroup,
+            botId,
+            mentionedIds
           });
           return;
         }
