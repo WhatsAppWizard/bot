@@ -36,11 +36,17 @@ class LoggerService implements ILogger {
       format: format.combine(
         format.timestamp(),
         format.errors({ stack: true }),
-        format.json()
+        format.json(),
+        format((info) => {
+          // Extract labels from meta and add to Loki labels
+          if (info.labels) {
+            Object.assign(info, info.labels);
+          }
+          return info;
+        })()
       ),
       onConnectionError: (err: any) => console.error('Loki connection error:', err),
       basicAuth: `${lokiConfig.username}:${lokiConfig.password}`
-    
     });
 
     this.logger = createLogger({
@@ -87,19 +93,51 @@ class LoggerService implements ILogger {
   }
 
   error(message: string, meta?: any): void {
-    this.logger.error(message, meta);
+    this.logger.error(message, { 
+      ...meta,
+      labels: { 
+        level: 'error',
+        context: meta?.context || 'unknown',
+        userId: meta?.userId || 'system',
+        ...meta?.labels 
+      }
+    });
   }
 
   warn(message: string, meta?: any): void {
-    this.logger.warn(message, meta);
+    this.logger.warn(message, { 
+      ...meta,
+      labels: { 
+        level: 'warn',
+        context: meta?.context || 'unknown',
+        userId: meta?.userId || 'system',
+        ...meta?.labels 
+      }
+    });
   }
 
   info(message: string, meta?: any): void {
-    this.logger.info(message, meta);
+    this.logger.info(message, { 
+      ...meta,
+      labels: { 
+        level: 'info',
+        context: meta?.context || 'unknown',
+        userId: meta?.userId || 'system',
+        ...meta?.labels 
+      }
+    });
   }
 
   debug(message: string, meta?: any): void {
-    this.logger.debug(message, meta);
+    this.logger.debug(message, { 
+      ...meta,
+      labels: { 
+        level: 'debug',
+        context: meta?.context || 'unknown',
+        userId: meta?.userId || 'system',
+        ...meta?.labels 
+      }
+    });
   }
 
   // Structured logging methods for specific events
@@ -107,7 +145,13 @@ class LoggerService implements ILogger {
     this.info(`WhatsApp Event: ${event}`, {
       event,
       timestamp: new Date().toISOString(),
-      ...data
+      ...data,
+      labels: {
+        level: 'info',
+        context: 'whatsapp',
+        event: event,
+        userId: data.userId || 'system'
+      }
     });
   }
 
@@ -116,7 +160,13 @@ class LoggerService implements ILogger {
       messageId,
       userId,
       processingTime,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      labels: {
+        level: 'info',
+        context: 'message_handler',
+        userId: userId,
+        messageId: messageId
+      }
     });
   }
 
@@ -125,7 +175,14 @@ class LoggerService implements ILogger {
       event,
       downloadId,
       timestamp: new Date().toISOString(),
-      ...data
+      ...data,
+      labels: {
+        level: 'info',
+        context: 'download',
+        event: event,
+        downloadId: downloadId,
+        userId: data.userId || 'system'
+      }
     });
   }
 
@@ -135,7 +192,13 @@ class LoggerService implements ILogger {
       stack: error.stack,
       context,
       timestamp: new Date().toISOString(),
-      ...meta
+      ...meta,
+      labels: {
+        level: 'error',
+        context: context,
+        userId: meta?.userId || 'system',
+        errorType: error.name || 'Error'
+      }
     });
   }
 }

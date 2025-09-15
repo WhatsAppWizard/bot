@@ -55,12 +55,12 @@
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": false,
+  "prettifyLogMessage": true,
+        "showCommonLabels": true,
+        "showLabels": true,
+        "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": false
+        "wrapLogMessage": true
       },
       "targets": [
         {
@@ -68,8 +68,8 @@
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
-          "editorMode": "builder",
-          "expr": "{service=\"whatsapp-wizard\"} |= ``",
+          "editorMode": "code",
+          "expr": "{service=\"whatsapp-wizard\"} |~ \"(handled successfully|WhatsApp Event:|starting|started|error)\"",
           "queryType": "",
           "refId": "A"
         }
@@ -163,7 +163,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(rate({service=\"whatsapp-wizard\"} |= \"ERROR\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", level=\"error\"} [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -257,7 +257,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(rate({service=\"whatsapp-wizard\"} |= \"WhatsApp Event\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"whatsapp\"} |~ \"WhatsApp Event:\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -351,7 +351,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(rate({service=\"whatsapp-wizard\"} |= \"Download Event\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"download\"} |~ \"Download Event:\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -415,7 +415,7 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -438,19 +438,19 @@
           "sort": "none"
         }
       },
-      "targets": [
+          "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "avg_over_time({service=\"whatsapp-wizard\"} |= \"Message processed\" | json | unwrap processingTime [$__interval])",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
       ],
-      "title": "Average Message Processing Time",
+      "title": "Message Handling Rate",
       "type": "timeseries"
     },
     {
@@ -502,14 +502,14 @@
           "sort": "none"
         }
       },
-      "targets": [
+          "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum by (level) (count_over_time({service=\"whatsapp-wizard\"} | json [$__interval]))",
+          "expr": "sum by (level) (count_over_time({service=\"whatsapp-wizard\"} [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -572,14 +572,14 @@
         "showHeader": true
       },
       "pluginVersion": "10.1.0",
-      "targets": [
+          "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "topk(10, sum by (error) (count_over_time({service=\"whatsapp-wizard\"} |= \"ERROR\" | json [$__interval])))",
+          "expr": "topk(10, sum by (context) (count_over_time({service=\"whatsapp-wizard\", level=\"error\"} [$__interval])))",
           "queryType": "",
           "refId": "A"
         }
@@ -663,7 +663,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum by (userId) (count_over_time({service=\"whatsapp-wizard\"} |= \"Message processed\" | json [$__interval]))",
+          "expr": "sum by (userId) (count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "A"
         }
@@ -728,7 +728,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\"} |= \"Message processed\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval]))",
           "queryType": "",
           "refId": "Total Messages"
         },
@@ -738,7 +738,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"whatsapp-wizard\"} |= \"Download Event\" [$__interval]))",
+          "expr": "sum(count_over_time({service=\"whatsapp-wizard\", context=\"download\"} |~ \"Download Event:\" [$__interval]))",
           "queryType": "",
           "refId": "Total Downloads"
         },
@@ -748,7 +748,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count(count by (userId) (count_over_time({service=\"whatsapp-wizard\"} |= \"Message processed\" | json [$__interval])))",
+          "expr": "count(count by (userId) (count_over_time({service=\"whatsapp-wizard\", context=\"message_handler\"} |~ \"handled successfully\" [$__interval])))",
           "queryType": "",
           "refId": "Active Users"
         }
@@ -772,7 +772,7 @@
         "current": {
           "selected": false,
           "text": "Loki",
-          "value": "loki-uid"
+          "value": ""
         },
         "hide": 0,
         "includeAll": false,
@@ -822,8 +822,8 @@
       {
         "current": {
           "selected": false,
-          "text": "info",
-          "value": "info"
+          "text": "All Levels",
+          "value": "$__all"
         },
         "hide": 0,
         "includeAll": true,
@@ -832,8 +832,8 @@
         "name": "log_level",
         "options": [
           {
-            "selected": false,
-            "text": "All",
+            "selected": true,
+            "text": "All Levels",
             "value": "$__all"
           },
           {
@@ -847,7 +847,7 @@
             "value": "warn"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "info",
             "value": "info"
           },
