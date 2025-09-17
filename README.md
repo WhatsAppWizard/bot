@@ -20,7 +20,8 @@ WhatsAppWizard empowers users to easily download online content and create perso
     - [Running the Project](#running-the-project)
 5. [Usage Examples 💡](#usage-examples-)
 6. [Project Structure 📁](#project-structure-)
-7. [Contributing 🤝](#contributing-)
+7. [Download Algorithm 📥](#download-algorithm-)
+8. [Contributing 🤝](#contributing-)
 9. [Deployment 🚀](#deployment-)
 10. [API Documentation 📚](#api-documentation-)
 11. [Roadmap 🗺️](#roadmap-)
@@ -170,6 +171,8 @@ WhatsAppWizard/
 ├── .github/workflows/         # GitHub Actions workflows
 ├── .dockerignore               # Files to ignore in Docker builds
 ├── .env.example                # Example environment variables
+├── docs/                       # Documentation files
+│   └── DOWNLOAD_ALGORITHM.md   # Detailed download algorithm documentation
 ├── ecosystem.config.js        # PM2 configuration file
 ├── nodemon.json                # Nodemon configuration file
 ├── package.json                # Project dependencies and scripts
@@ -184,6 +187,18 @@ WhatsAppWizard/
 ├── tsconfig.json               # TypeScript configuration file
 ├── docker-compose.yml          # Docker Compose configuration
 ```
+
+## Download Algorithm 📥
+
+The WhatsAppWizard bot uses a sophisticated multi-platform download system that supports TikTok, Instagram, Facebook, YouTube, and Twitter. The algorithm implements:
+
+- **Platform Detection**: Automatic identification of content source
+- **Queue-Based Processing**: Asynchronous download handling using BullMQ
+- **Retry Mechanisms**: Robust error handling with platform-specific retry logic
+- **File Management**: Organized storage with timestamp-based naming
+- **Real-time Status Updates**: Live feedback to users via WhatsApp
+
+For detailed technical documentation about the download algorithm, including flow diagrams, platform-specific implementations, and error handling strategies, see: **[📖 Download Algorithm Documentation](docs/DOWNLOAD_ALGORITHM.md)**
 
 ## Contributing 🤝
 
