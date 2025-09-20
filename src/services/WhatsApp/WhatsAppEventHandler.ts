@@ -4,6 +4,7 @@ import MessageProcessor from './MessageProcessor';
 import QueueEventHandler from './QueueEventHandler';
 import QueueService from '../Queue';
 import TelegramService from '../Telegram';
+import DownloadQueueListener from '../DownloadQueueListener';
 import loggerService from '../Logger';
 import analyticsWrapper from '../AnalyticsWrapper';
 import { IWhatsAppEventHandler } from '../../types/IWhatsAppEventHandler';
@@ -14,6 +15,7 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
   private readonly queueEventHandler: QueueEventHandler;
   private readonly queueService: QueueService;
   private readonly telegramService: TelegramService;
+  private readonly downloadQueueListener: DownloadQueueListener;
 
   constructor() {
     this.authenticationManager = new AuthenticationManager();
@@ -21,6 +23,7 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
     this.queueEventHandler = new QueueEventHandler();
     this.queueService = QueueService.getInstance();
     this.telegramService = TelegramService.getInstance();
+    this.downloadQueueListener = new DownloadQueueListener();
   }
 
   setupEventHandlers(client: Client): void {
@@ -46,7 +49,10 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
       // Setup other event handlers
       this.setupCallHandling(client);
       this.setupTelegramEvents();
-      this.setupQueueEvents();
+      this.setupQueueEventsWithClient(client);
+      
+      // Start download queue listener ONLY after WhatsApp is ready
+      await this.startDownloadQueueListener();
     });
 
     // QR code generation
@@ -163,9 +169,30 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
     loggerService.info('Queue events setup delegated to main service');
   }
 
-  // Method to setup queue events with client instance
+  // Setup queue events with client instance
   setupQueueEventsWithClient(client: Client): void {
     this.queueEventHandler.setupEventHandlers(client, this.queueService);
+  }
+
+  // Start download queue listener after WhatsApp is ready
+  private async startDownloadQueueListener(): Promise<void> {
+    try {
+      await this.downloadQueueListener.start();
+      loggerService.info('Download queue listener started after WhatsApp authentication');
+    } catch (error) {
+      loggerService.logError(error as Error, 'WhatsAppEventHandler.startDownloadQueueListener');
+      throw error;
+    }
+  }
+
+  // Stop download queue listener
+  async stopDownloadQueueListener(): Promise<void> {
+    try {
+      await this.downloadQueueListener.stop();
+      loggerService.info('Download queue listener stopped');
+    } catch (error) {
+      loggerService.logError(error as Error, 'WhatsAppEventHandler.stopDownloadQueueListener');
+    }
   }
 
   // Method to handle broadcast with client instance

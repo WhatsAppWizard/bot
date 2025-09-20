@@ -1,5 +1,4 @@
 import { Job } from "bullmq";
-import { Message } from "whatsapp-web.js";
 
 export interface IDownloadedOnDisk {
     path: string;
@@ -13,10 +12,27 @@ export enum DownloadEvents {
     DownloadProgress = "downloadProgress",
 }
 
+export interface IMessageData {
+  id: string;
+  from: string;
+  to?: string;
+  timestamp: number;
+  body?: string;
+  type: string;
+  isGroup: boolean;
+  isForwarded: boolean;
+  fromMe: boolean;
+  hasMedia: boolean;
+  hasQuotedMsg: boolean;
+}
+
 export interface IDownloadJob {
   url: string;
-  message: Message;
+  messageData: IMessageData;
   downloadId: string;
+  userId: string;
+  userNumber: string;
+  timestamp: number;
 }
 
 export interface IDownloadJobResponse {

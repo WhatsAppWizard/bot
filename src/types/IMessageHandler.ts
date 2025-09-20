@@ -14,5 +14,4 @@ export interface IMediaHandler extends IMessageHandler {
 }
 
 export interface ILinkHandler extends IMessageHandler {
-  getSupportedDomains(): string[];
 }

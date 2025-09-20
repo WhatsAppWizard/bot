@@ -29,6 +29,15 @@ export class MediaHandler implements IMediaHandler {
         return;
       }
 
+      // For group chats, only process if this is a quoted message (handled by MessageProcessor)
+      if (chatInfo.isGroup) {
+        loggerService.debug('Processing quoted media message in group chat', {
+          userId,
+          groupId: chatInfo.id._serialized,
+          messageId: message.id._serialized
+        });
+      }
+
       const { mimetype, data } = await message.downloadMedia();
 
       if (this.supportedMimeTypes.includes(mimetype)) {
@@ -71,7 +80,17 @@ export class MediaHandler implements IMediaHandler {
   ): Promise<void> {
     try {
       // Save sticker to database
-      await this.stickerRepository.create(userId, message.timestamp, message.body || '');
+      // Use current timestamp if message.timestamp is undefined (for quoted messages)
+      const timestamp = message.timestamp || Date.now();
+      
+      loggerService.debug('Creating sticker record', {
+        userId,
+        timestamp,
+        messageId: message.id._serialized,
+        hasTimestamp: !!message.timestamp
+      });
+      
+      await this.stickerRepository.create(userId, timestamp, message.body || '');
       
       // Create and send sticker
       const media = new MessageMedia(mimetype, data);

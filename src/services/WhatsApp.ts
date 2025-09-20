@@ -47,6 +47,9 @@ class WhatsAppService implements IWhatsAppService {
 
       this.statsService.stopUnreadChatMonitoring();
 
+      // Stop download queue listener via event handler
+      await this.eventHandler.stopDownloadQueueListener();
+
       if (this.client) {
         await this.client.destroy();
         this.client = null;
@@ -115,11 +118,8 @@ class WhatsAppService implements IWhatsAppService {
     }
 
     try {
-      // Setup WhatsApp event handlers
+      // Setup WhatsApp event handlers (includes queue events)
       this.eventHandler.setupEventHandlers(this.client);
-
-      // Setup queue events with client instance
-      this.eventHandler.setupQueueEventsWithClient(this.client);
 
       // Start unread chat monitoring
       this.statsService.startUnreadChatMonitoring(this.client);

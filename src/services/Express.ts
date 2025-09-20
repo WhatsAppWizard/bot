@@ -9,7 +9,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/health", health);
 
 
-app.listen(process.env.PORT || 3000, () => {
+app.listen(process.env.PORT || 3020, () => {
     console.log("Server is running on port 3000");
 });
 

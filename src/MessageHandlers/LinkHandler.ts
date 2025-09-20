@@ -10,15 +10,6 @@ export class LinkHandler implements ILinkHandler {
   private readonly downloadRepository: DownloadRepository;
   private readonly queueService: QueueService;
   private readonly rateLimiterService: RateLimiterService;
-  private readonly supportedDomains = [
-    'facebook.com',
-    'instagram.com',
-    'tiktok.com',
-    'youtube.com',
-    'youtu.be',
-    'twitter.com',
-    'x.com'
-  ];
 
   constructor() {
     this.downloadRepository = new DownloadRepository();
@@ -42,6 +33,10 @@ export class LinkHandler implements ILinkHandler {
       const userNumber = await contactInfo.getFormattedNumber();
       const chatInfo = await message.getChat();
 
+      // Get URL first for logging purposes
+      const urls = message.links.map(link => link.link);
+      const url = urls[0]; // Support only one URL at a time
+
       // Check rate limiting
       const isRateLimited = await this.rateLimiterService.isRatedLimited(userNumber);
       if (isRateLimited) {
@@ -56,16 +51,18 @@ export class LinkHandler implements ILinkHandler {
         return;
       }
 
-      const urls = message.links.map(link => link.link);
-      const url = urls[0]; // Support only one URL at a time
+      // For group chats, only process if this is a quoted message (handled by MessageProcessor)
+      if (chatInfo.isGroup) {
+        loggerService.debug('Processing quoted link message in group chat', {
+          userId,
+          groupId: chatInfo.id._serialized,
+          messageId: message.id._serialized,
+          url
+        });
+      }
 
-      if (url && this.isSupportedDomain(url)) {
+      if (url) {
         await this.processDownloadRequest(message, url, userId, userNumber);
-      } else {
-        // Only send unsupported platform message in private chats, not in groups
-        if (!chatInfo.isGroup) {
-          await message.reply("Sorry, I don't support downloads from this platform yet.");
-        }
       }
 
       const processingTime = Date.now() - startTime;
@@ -99,20 +96,55 @@ export class LinkHandler implements ILinkHandler {
   ): Promise<void> {
     try {
       // Create download record in database
+      // Use current timestamp if message.timestamp is undefined (for quoted messages)
+      const timestamp = message.timestamp ? BigInt(message.timestamp) : BigInt(Date.now());
+      
+      loggerService.debug('Creating download record', {
+        url,
+        userId,
+        timestamp: timestamp.toString(),
+        messageId: message.id._serialized,
+        hasTimestamp: !!message.timestamp
+      });
+      
       const downloadRecord = await this.downloadRepository.create(
         url,
         "UNKNOWN",
         userId,
-        message.timestamp
+        timestamp
       );
 
-      // Add job to download queue
+      // Get chat info to determine if it's a group
+      const chatInfo = await message.getChat();
+
+      // Prepare message data for the queue
+      const messageData = {
+        id: message.id._serialized,
+        from: message.from,
+        to: message.to,
+        timestamp: message.timestamp || Date.now(),
+        body: message.body,
+        type: message.type,
+        isGroup: chatInfo.isGroup,
+        isForwarded: message.isForwarded,
+        fromMe: message.fromMe,
+        hasMedia: message.hasMedia,
+        hasQuotedMsg: message.hasQuotedMsg,
+      };
+
+      // Add job to download queue with complete message data
       await this.queueService.addJobToDownloaderQueue(
-        `${message.timestamp}-${userNumber}`,
         {
           url,
           downloadId: downloadRecord.id,
-          message,
+          messageData: messageData,
+          userId,
+          userNumber,
+          timestamp: message.timestamp || Date.now()
+        },
+        {
+          priority: 0,
+          delay: 0,
         }
       );
 
@@ -135,20 +167,5 @@ export class LinkHandler implements ILinkHandler {
       
       throw error;
     }
-  }
-
-  private isSupportedDomain(url: string): boolean {
-    try {
-      const domain = new URL(url).hostname.toLowerCase();
-      return this.supportedDomains.some(supportedDomain => 
-        domain.includes(supportedDomain)
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  getSupportedDomains(): string[] {
-    return [...this.supportedDomains];
   }
 }

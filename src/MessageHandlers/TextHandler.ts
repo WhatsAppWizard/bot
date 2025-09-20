@@ -27,14 +27,14 @@ export class TextHandler implements IMessageHandler {
         return;
       }
 
-      // Check if this is a group chat - if so, don't respond to text messages
+      // For group chats, only process if this is a quoted message (handled by MessageProcessor)
       if (chatInfo.isGroup) {
-        loggerService.debug('Skipping text response in group chat', {
+        loggerService.debug('Processing quoted text message in group chat', {
           userId,
+          groupId: chatInfo.id._serialized,
           messageId: message.id._serialized,
           messageLength: message.body.length
         });
-        return;
       }
 
       const response = await this.agentService.sendMessage(message.body, userId);

@@ -18,11 +18,17 @@ class DownloadRepository {
         where: { urlFromUser: url },
       });
     }
-    async create(url: string, platform: string, userId:string, sentAt: number) {
+    async create(url: string, platform: string, userId: string, sentAt: bigint, status: DownloadStatus = DownloadStatus.PENDING) {
       return await this.prisma.downloads.create({
-        data: { urlFromUser: url, platform, userId,sentAt},
+        data: { 
+          urlFromUser: url, 
+          platform, 
+          userId, 
+          sentAt,
+          status
+        },
       });
-    }   
+    }
 
     async updateStatusById(id: string, status: DownloadStatus) {
         return await this.prisma.downloads.update({

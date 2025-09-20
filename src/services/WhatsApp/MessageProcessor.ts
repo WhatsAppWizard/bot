@@ -49,45 +49,89 @@ class MessageProcessor implements IMessageProcessor {
         return;
       }
 
-      // For group chats, only process links and media, skip text messages
+      // For group chats, only process when bot is mentioned
       if (chatInfo.isGroup) {
-        const hasLinks = message.links && message.links.length > 0;
-        const hasMedia = message.hasMedia;
+        const mentions = await message.getMentions();
         
-        if (!hasLinks && !hasMedia) {
-          loggerService.debug('Skipping text message in group chat', {
-            messageId: message.id._serialized,
-            isGroup: chatInfo.isGroup
-          });
-          return;
-        }
-        if (hasMedia){
-            loggerService.debug('Skipping media message in group chat', {
-            messageId: message.id._serialized,
-            isGroup: chatInfo.isGroup
-          });
-          return;
-        }
-        const mentionedIds = message.mentionedIds || [];
-        if (mentionedIds.length === 0) {
-          loggerService.debug('Skipping unmentioned message in group chat', {
-            messageId: message.id._serialized,
-            isGroup: chatInfo.isGroup
-          });
-          return;
-        }
-
         // Check if the bot was mentioned in the message
-        const isBotMentioned = message.mentionedIds.includes(botId);
+        const isBotMentioned = mentions.find(mention => mention.id._serialized === botId);
         if (!isBotMentioned) {
           loggerService.debug('Skipping message in group chat not mentioning bot', {
             messageId: message.id._serialized,
             isGroup: chatInfo.isGroup,
             botId,
-            mentionedIds
+            mentions
           });
           return;
         }
+
+        // If bot is mentioned, check if it's a quoted message
+        if (message.hasQuotedMsg) {
+   
+            const quotedMessage = await message.getQuotedMessage();
+            if (quotedMessage) {
+              loggerService.debug('Processing quoted message in group chat', {
+                messageId: message.id._serialized,
+                quotedMessageId: quotedMessage.id._serialized,
+                isGroup: chatInfo.isGroup,
+                hasQuotedMsg: message.hasQuotedMsg
+              });
+              
+              // Get or create user for the quoted message (use original sender)
+              const quotedUser = await this.getOrCreateUser(quotedMessage);
+              
+              // Process the quoted message instead of the current message
+              // Use the quoted message sender's user ID for database operations
+              await this.handleMessageWithHandlers(quotedMessage, quotedUser.id);
+              
+              // Track the mention event with group context
+              analyticsWrapper.trackMessageEvent('quoted_message_processed', quotedUser.id, {
+                messageId: message.id._serialized,
+                quotedMessageId: quotedMessage.id._serialized,
+                groupId: chatInfo.id._serialized,
+                hasMedia: quotedMessage.hasMedia,
+                hasLinks: quotedMessage.links.length > 0
+              });
+              
+              return; // Exit after processing quoted message - DO NOT PROCESS MENTION MESSAGE
+            } else {
+              loggerService.debug('Quoted message is null, skipping processing', {
+                messageId: message.id._serialized,
+                isGroup: chatInfo.isGroup
+              });
+              return; // Exit if quoted message is null
+            }
+        
+        }
+
+        // If bot is mentioned but no quoted message, check for direct content
+        const hasLinks = message.links && message.links.length > 0;
+        const hasMedia = message.hasMedia;
+        
+        loggerService.debug('Processing mention message in group chat (no quoted message)', {
+          messageId: message.id._serialized,
+          isGroup: chatInfo.isGroup,
+          hasLinks,
+          hasMedia,
+          hasQuotedMsg: message.hasQuotedMsg
+        });
+        
+        if (!hasLinks && !hasMedia) {
+          loggerService.debug('Skipping text message in group chat without quoted message', {
+            messageId: message.id._serialized,
+            isGroup: chatInfo.isGroup
+          });
+          return;
+        }
+        
+        if (hasMedia) {
+          loggerService.debug('Skipping media message in group chat without quoted message', {
+            messageId: message.id._serialized,
+            isGroup: chatInfo.isGroup
+          });
+          return;
+        }
+        
         loggerService.debug('Processing link message in group chat', {
           messageId: message.id._serialized,
           isGroup: chatInfo.isGroup,
