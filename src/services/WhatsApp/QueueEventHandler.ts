@@ -88,11 +88,11 @@ class QueueEventHandler implements IQueueEventHandler {
       if (Array.isArray(downloadUrls)) {
         for (const url of downloadUrls) {
           const downloaded = await this.downloadService.DownloadOnDisk(url, detectedPlatform || '');
-          await this.handleMediaDownload(downloaded.path, userMessageOnWhatsApp, messageData, client);
+          await this.handleMediaDownload(downloaded.path, userMessageOnWhatsApp, messageData, client, url);
         }
       } else {
         const downloaded = await this.downloadService.DownloadOnDisk(downloadUrls || '', detectedPlatform || '');
-        await this.handleMediaDownload(downloaded.path, userMessageOnWhatsApp, messageData, client);
+        await this.handleMediaDownload(downloaded.path, userMessageOnWhatsApp, messageData, client, url);
       }
 
 
@@ -287,10 +287,11 @@ class QueueEventHandler implements IQueueEventHandler {
     path: string, 
     userMessageOnWhatsApp: Message | null, 
     message: any, 
-    client: Client
+    client: Client,
+    originalUrl?: string
   ): Promise<void> {
     try {
-      const media =  MessageMedia.fromFilePath(path);
+      const media = MessageMedia.fromFilePath(path);
       
       if (!userMessageOnWhatsApp) {
         const chat = await client.getChatById(message.from);
@@ -313,7 +314,75 @@ class QueueEventHandler implements IQueueEventHandler {
         messageId: message.id
       });
       
-    
+      // Fallback: Send original URL if available
+      if (originalUrl) {
+        await this.handleMediaDownloadFallback(originalUrl, userMessageOnWhatsApp, message, client);
+      } else {
+        // If no original URL, send error message
+        const errorMessage = MessageUtils.createErrorMessage(
+          "Sorry, we encountered an error while processing your media file. Please try again later."
+        );
+        
+        if (!userMessageOnWhatsApp) {
+          const chat = await client.getChatById(message.from);
+          await chat.sendMessage(errorMessage);
+        } else {
+          await userMessageOnWhatsApp.reply(errorMessage);
+        }
+      }
+      
+      // Clean up file
+      await FileService.removeFile(path);
+    }
+  }
+
+  private async handleMediaDownloadFallback(
+    originalUrl: string,
+    userMessageOnWhatsApp: Message | null,
+    message: any,
+    client: Client
+  ): Promise<void> {
+    try {
+      // Create shortened URL from the original URL
+      const shortenedUrl = await shortenerService.shortenUrl(originalUrl);
+      
+      // Create apology message with shortened URL
+      const fallbackMessage = MessageUtils.createErrorMessage(
+        `Sorry, we faced an error while sending it as Media File but we sent it as direct url instead for now.\n\n` +
+        `Download link: ${shortenedUrl}`
+      );
+      
+      // Send the fallback message
+      if (!userMessageOnWhatsApp) {
+        const chat = await client.getChatById(message.from);
+        await chat.sendMessage(fallbackMessage);
+      } else {
+        await userMessageOnWhatsApp.reply(fallbackMessage);
+      }
+
+      loggerService.info('Media download fallback completed', {
+        originalUrl,
+        shortenedUrl,
+        messageId: message.id
+      });
+
+    } catch (fallbackError) {
+      loggerService.logError(fallbackError as Error, 'QueueEventHandler.handleMediaDownloadFallback', {
+        originalUrl,
+        messageId: message.id
+      });
+      
+      // Final fallback: Send error message
+      const errorMessage = MessageUtils.createErrorMessage(
+        "Sorry, we encountered an error while processing your media file. Please try again later."
+      );
+      
+      if (!userMessageOnWhatsApp) {
+        const chat = await client.getChatById(message.from);
+        await chat.sendMessage(errorMessage);
+      } else {
+        await userMessageOnWhatsApp.reply(errorMessage);
+      }
     }
   }
 }
