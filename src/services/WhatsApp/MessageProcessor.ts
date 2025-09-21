@@ -49,7 +49,6 @@ class MessageProcessor implements IMessageProcessor {
         return;
       }
       const user = await this.getOrCreateUser(message);
-      await chatInfo.sendSeen();
       if (chatInfo.isGroup) {
         const mentions = await message.getMentions();
         
@@ -148,6 +147,7 @@ class MessageProcessor implements IMessageProcessor {
       });
 
       loggerService.logMessageProcessed(message.id._serialized, user.id, processingTime);
+      await chatInfo.sendSeen();
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
