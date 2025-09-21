@@ -8,6 +8,7 @@ import DownloadQueueListener from '../DownloadQueueListener';
 import loggerService from '../Logger';
 import analyticsWrapper from '../AnalyticsWrapper';
 import { IWhatsAppEventHandler } from '../../types/IWhatsAppEventHandler';
+import { MessageUtils } from '../../utils/MessageUtils';
 
 class WhatsAppEventHandler implements IWhatsAppEventHandler {
   private readonly authenticationManager: AuthenticationManager;
@@ -48,7 +49,6 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
       
       // Setup other event handlers
       this.setupCallHandling(client);
-      this.setupTelegramEvents();
       this.setupQueueEventsWithClient(client);
       
       // Start download queue listener ONLY after WhatsApp is ready
@@ -133,9 +133,8 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
       const user = await call.client.getContactById(userId);
       const chat = await user.getChat();
       
-      await chat.sendMessage(
-        "You're Blocked due to spammy behavior. \n\nPlease contact us on our website to unblock you."
-      );
+      const blockingMessage = MessageUtils.createErrorMessage("You're Blocked due to spammy behavior. \n\nPlease contact us on our email dev@gitnasr.com to unblock you.");
+      await chat.sendMessage(blockingMessage);
 
       await user.block();
 
@@ -150,19 +149,7 @@ class WhatsAppEventHandler implements IWhatsAppEventHandler {
     }
   }
 
-  setupTelegramEvents(): void {
-    this.telegramService.on("broadcast-requested", async (message) => {
-      try {
-        loggerService.info('Broadcast message received', { message });
-        
-        // This would need access to the client instance
-        // We'll handle this in the main service
-        loggerService.info('Broadcast handling delegated to main service');
-      } catch (error) {
-        loggerService.logError(error as Error, 'WhatsAppEventHandler.setupTelegramEvents');
-      }
-    });
-  }
+
 
   setupQueueEvents(): void {
     // Queue events will be setup when we have the client instance

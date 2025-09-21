@@ -48,12 +48,12 @@ class MessageProcessor implements IMessageProcessor {
         });
         return;
       }
-
-      // For group chats, only process when bot is mentioned
+      const user = await this.getOrCreateUser(message);
+      await chatInfo.sendSeen();
       if (chatInfo.isGroup) {
         const mentions = await message.getMentions();
         
-        // Check if the bot was mentioned in the message
+
         const isBotMentioned = mentions.find(mention => mention.id._serialized === botId);
         if (!isBotMentioned) {
           loggerService.debug('Skipping message in group chat not mentioning bot', {
@@ -77,34 +77,28 @@ class MessageProcessor implements IMessageProcessor {
                 hasQuotedMsg: message.hasQuotedMsg
               });
               
-              // Get or create user for the quoted message (use original sender)
-              const quotedUser = await this.getOrCreateUser(quotedMessage);
-              
-              // Process the quoted message instead of the current message
-              // Use the quoted message sender's user ID for database operations
-              await this.handleMessageWithHandlers(quotedMessage, quotedUser.id);
+              await this.handleMessageWithHandlers(quotedMessage, user.id);
               
               // Track the mention event with group context
-              analyticsWrapper.trackMessageEvent('quoted_message_processed', quotedUser.id, {
+              analyticsWrapper.trackMessageEvent('quoted_message_processed', user.id, {
                 messageId: message.id._serialized,
                 quotedMessageId: quotedMessage.id._serialized,
                 groupId: chatInfo.id._serialized,
                 hasMedia: quotedMessage.hasMedia,
                 hasLinks: quotedMessage.links.length > 0
               });
-              
-              return; // Exit after processing quoted message - DO NOT PROCESS MENTION MESSAGE
+                
+                return; 
             } else {
               loggerService.debug('Quoted message is null, skipping processing', {
                 messageId: message.id._serialized,
                 isGroup: chatInfo.isGroup
               });
-              return; // Exit if quoted message is null
+              return; 
             }
         
         }
 
-        // If bot is mentioned but no quoted message, check for direct content
         const hasLinks = message.links && message.links.length > 0;
         const hasMedia = message.hasMedia;
         
@@ -140,11 +134,6 @@ class MessageProcessor implements IMessageProcessor {
         });
       }
 
-      // Mark message as seen
-      await chatInfo.sendSeen();
-
-      // Get or create user
-      const user = await this.getOrCreateUser(message);
       
       // Process message with appropriate handler
       await this.handleMessageWithHandlers(message, user.id);

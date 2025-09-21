@@ -10,6 +10,7 @@ import { shortenerService } from '../Shortener';
 import loggerService from '../Logger';
 import analyticsWrapper from '../AnalyticsWrapper';
 import QueueService from '../Queue';
+import { MessageUtils } from '../../utils/MessageUtils';
 
 export interface IQueueEventHandler {
   setupEventHandlers(client: Client, queueService: QueueService): void;
@@ -49,7 +50,6 @@ class QueueEventHandler implements IQueueEventHandler {
     loggerService.info('Stream event handlers setup completed');
   }
 
-  // Helper method to get user ID from phone number
   private async getUserIdFromPhone(phone: string): Promise<string | null> {
     try {
       const user = await this.userRepository.getUserByPhone(phone);
@@ -97,14 +97,13 @@ class QueueEventHandler implements IQueueEventHandler {
 
 
 
-      // Get user ID from phone number
       const userId = await this.getUserIdFromPhone(messageData.from);
       if (!userId) {
         loggerService.warn("User not found in database", { phone: messageData.from, jobId });
         return;
       }
 
-      // Record successful download in database AFTER handling
+     
       await this.downloadRepository.create(
         url || '',
         detectedPlatform || 'unknown',
@@ -176,7 +175,7 @@ class QueueEventHandler implements IQueueEventHandler {
 
       const userMessageOnWhatsApp = await client.getMessageById(messageData.id);
 
-      const errorMsg = "Believe me, I tried my best to download this file, but something went error, don't worry i'm automatically reported it to Mahmoud and he will fix it soon. 🫠😔 \n\nPlease try again later";
+      const errorMsg = MessageUtils.createErrorMessage("Believe me, I tried my best to download this file, but something went error, don't worry i'm automatically reported it to Mahmoud and he will fix it soon. 🫠😔 \n\nPlease try again later");
 
       if (userMessageOnWhatsApp) {
         await userMessageOnWhatsApp.reply(errorMsg);
@@ -251,7 +250,7 @@ class QueueEventHandler implements IQueueEventHandler {
   ): Promise<void> {
     try {
       const shortenedUrl = await shortenerService.shortenUrl(path);
-      const messageText = `Here's your YouTube video URL:\n ${shortenedUrl} \n Be Advised this is a Temporary fix`;
+      const messageText = MessageUtils.appendTelegramChannelInfo(`Here's your YouTube video URL:\n ${shortenedUrl} \n Be Advised this is a Temporary fix`);
 
       if (!userMessageOnWhatsApp) {
         const chat = await client.getChatById(message.from);
@@ -273,7 +272,7 @@ class QueueEventHandler implements IQueueEventHandler {
       });
 
       // Fallback to original URL
-      const fallbackMessage = `Here's your YouTube video URL:\n${path}`;
+      const fallbackMessage = MessageUtils.appendTelegramChannelInfo(`Here's your YouTube video URL:\n${path}`);
       
       if (!userMessageOnWhatsApp) {
         const chat = await client.getChatById(message.from);

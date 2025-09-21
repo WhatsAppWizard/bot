@@ -5,14 +5,13 @@ import QueueService from '../services/Queue';
 import RateLimiterService from '../services/Ratelimiter';
 import loggerService from '../services/Logger';
 import analyticsWrapper from '../services/AnalyticsWrapper';
+import { MessageUtils } from '../utils/MessageUtils';
 
 export class LinkHandler implements ILinkHandler {
-  private readonly downloadRepository: DownloadRepository;
   private readonly queueService: QueueService;
   private readonly rateLimiterService: RateLimiterService;
 
   constructor() {
-    this.downloadRepository = new DownloadRepository();
     this.queueService = QueueService.getInstance();
     this.rateLimiterService = new RateLimiterService();
   }
@@ -33,7 +32,6 @@ export class LinkHandler implements ILinkHandler {
       const userNumber = await contactInfo.getFormattedNumber();
       const chatInfo = await message.getChat();
 
-      // Get URL first for logging purposes
       const urls = message.links.map(link => link.link);
       const url = urls[0]; // Support only one URL at a time
 
@@ -44,9 +42,8 @@ export class LinkHandler implements ILinkHandler {
         
         // Only send rate limit message in private chats, not in groups
         if (!chatInfo.isGroup) {
-          await message.reply(
-            "To save our resources, Please wait a moment before sending another request."
-          );
+          const rateLimitMessage = MessageUtils.createErrorMessage("To save our resources, Please wait a moment before sending another request.");
+          await message.reply(rateLimitMessage);
         }
         return;
       }
@@ -107,13 +104,7 @@ export class LinkHandler implements ILinkHandler {
         hasTimestamp: !!message.timestamp
       });
       
-      const downloadRecord = await this.downloadRepository.create(
-        url,
-        "UNKNOWN",
-        userId,
-        timestamp
-      );
-
+   
       // Get chat info to determine if it's a group
       const chatInfo = await message.getChat();
 
@@ -136,7 +127,6 @@ export class LinkHandler implements ILinkHandler {
       await this.queueService.addJobToDownloaderQueue(
         {
           url,
-          downloadId: downloadRecord.id,
           messageData: messageData,
           userId,
           userNumber,
@@ -150,14 +140,12 @@ export class LinkHandler implements ILinkHandler {
 
       analyticsWrapper.trackDownloadEvent('requested', userId, {
         url,
-        downloadId: downloadRecord.id,
         messageId: message.id._serialized
       });
       
       loggerService.info('Download request queued', {
         userId,
         url,
-        downloadId: downloadRecord.id
       });
     } catch (error) {
       analyticsWrapper.trackDownloadEvent('request_failed', userId, {

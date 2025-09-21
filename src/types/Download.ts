@@ -29,7 +29,6 @@ export interface IMessageData {
 export interface IDownloadJob {
   url: string;
   messageData: IMessageData;
-  downloadId: string;
   userId: string;
   userNumber: string;
   timestamp: number;

@@ -90,9 +90,6 @@ class QueueService extends EventEmitter {
     return jobs[jobs.length - 1];
   }
 
-  /**
-   * Get job status by ID (similar to external download service)
-   */
   public async getJobStatus(jobId: string) {
     const job = await this.downloaderQueue.getJob(jobId);
     if (!job) {
@@ -111,9 +108,7 @@ class QueueService extends EventEmitter {
     };
   }
 
-  /**
-   * Clean up completed and failed jobs
-   */
+
   public async cleanQueue(grace: number = 5000) {
     await this.downloaderQueue.clean(grace, 10, "completed");
     await this.downloaderQueue.clean(grace, 5, "failed");

@@ -3,6 +3,7 @@ import { IMessageHandler } from '../types/IMessageHandler';
 import { AgentService } from '../services/Agent';
 import loggerService from '../services/Logger';
 import analyticsWrapper from '../services/AnalyticsWrapper';
+import { MessageUtils } from '../utils/MessageUtils';
 
 export class TextHandler implements IMessageHandler {
   private readonly agentService: AgentService;
@@ -38,7 +39,8 @@ export class TextHandler implements IMessageHandler {
       }
 
       const response = await this.agentService.sendMessage(message.body, userId);
-      await message.reply(response);
+      const responseWithChannelInfo = MessageUtils.appendTelegramChannelInfo(response);
+      await message.reply(responseWithChannelInfo);
 
       const processingTime = Date.now() - startTime;
       
@@ -66,7 +68,8 @@ export class TextHandler implements IMessageHandler {
 
         // Only send error reply if not in group chat
         if (!chatInfo.isGroup) {
-          await message.reply("Sorry, I'm having trouble processing your message right now. Please try again later.");
+          const errorMessage = MessageUtils.createErrorMessage("Sorry, I'm having trouble processing your message right now. Please try again later.");
+          await message.reply(errorMessage);
         }
       } catch (replyError) {
         loggerService.logError(replyError as Error, 'TextHandler.fallbackReply', {

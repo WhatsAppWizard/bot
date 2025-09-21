@@ -1,7 +1,7 @@
 # Use Node.js official image with Alpine for smaller size
 FROM node:20-alpine AS base
 
-# Install dependencies for Puppeteer and Chrome and PM2 in a single layer
+# Install dependencies for Puppeteer and Chrome, ffmpeg, and PM2 in a single layer
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     ttf-freefont \
     dbus \
     xvfb \
+    ffmpeg \
     && rm -rf /var/cache/apk/* \
     && npm install -g pm2
 

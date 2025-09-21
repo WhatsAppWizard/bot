@@ -3,6 +3,7 @@ import { IMediaHandler } from '../types/IMessageHandler';
 import StickerRepository from '../services/Database/Stickers';
 import loggerService from '../services/Logger';
 import analyticsWrapper from '../services/AnalyticsWrapper';
+import { MessageUtils } from '../utils/MessageUtils';
 
 export class MediaHandler implements IMediaHandler {
   private readonly supportedMimeTypes = ['image/jpeg', 'image/png',"video/mp4"];
@@ -24,7 +25,8 @@ export class MediaHandler implements IMediaHandler {
       if (!message.hasMedia) {
         // Only send "no media found" message in private chats, not in groups
         if (!chatInfo.isGroup) {
-          await message.reply("No media found in message");
+          const noMediaMessage = MessageUtils.createErrorMessage("No media found in message");
+          await message.reply(noMediaMessage);
         }
         return;
       }
@@ -45,7 +47,8 @@ export class MediaHandler implements IMediaHandler {
       } else {
         // Only send unsupported media type message in private chats, not in groups
         if (!chatInfo.isGroup) {
-          await message.reply("We only support creating stickers from Image files only");
+          const unsupportedMediaMessage = MessageUtils.createErrorMessage("We only support creating stickers from Image and GIFs files only");
+          await message.reply(unsupportedMediaMessage);
         }
       }
 
@@ -97,7 +100,8 @@ export class MediaHandler implements IMediaHandler {
       await message.reply(media, "", {
         sendMediaAsSticker: true,
         stickerAuthor: "wwz.gitnasr.com",
-        stickerName: "WhatsApp Wizard v3.0",
+        stickerName: "WhatsApp Wizard v4.0",
+        stickerCategories: ["WhatsApp Wizard", "WhatsApp Wizard v4.0"],
       });
 
       analyticsWrapper.trackStickerEvent('created', userId, {
