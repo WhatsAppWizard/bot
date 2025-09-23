@@ -25,6 +25,10 @@ services:
       - whatsapp_auth:/app/.wwebjs_auth
       - whatsapp_cache:/app/.wwebjs_cache
       - whatsapp_profile:/app/BTAA
+      - whatsapp_dev:/app/DEV
+      - media_files:/app/public/media
+      - qr_codes:/app/public/qrcodes
+      - app_logs:/app/logs
     networks:
       - whatsapp-network
     healthcheck:
@@ -36,8 +40,19 @@ services:
 
 volumes:
   whatsapp_auth:
+    driver: local
   whatsapp_cache:
+    driver: local
   whatsapp_profile:
+    driver: local
+  whatsapp_dev:
+    driver: local
+  media_files:
+    driver: local
+  qr_codes:
+    driver: local
+  app_logs:
+    driver: local
 
 networks:
   whatsapp-network:

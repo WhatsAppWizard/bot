@@ -31,10 +31,11 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
     mkdir -p /app/public/media /app/public/qrcodes /app/logs /app/BTAA /app/DEV /app/.wwebjs_cache /app/.wwebjs_auth && \
-    chown -R nextjs:nodejs /app
+    chown -R nextjs:nodejs /app && \
+    chmod -R 755 /app/.wwebjs_cache /app/.wwebjs_auth
 
 # Create persistent storage volumes for auth data
-VOLUME ["/app/BTAA", "/app/DEV", "/app/public/media", "/app/public/qrcodes","/app/.wwebjs_cache","/app/.wwebjs_auth"]
+VOLUME ["/app/BTAA", "/app/DEV", "/app/public/media", "/app/public/qrcodes", "/app/.wwebjs_cache", "/app/.wwebjs_auth", "/app/logs"]
 
 # Copy package files and prisma schema first for better caching
 COPY package*.json ./ 

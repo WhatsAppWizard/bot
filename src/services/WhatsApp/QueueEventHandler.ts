@@ -176,10 +176,14 @@ class QueueEventHandler implements IQueueEventHandler {
         jobId: eventData.jobId
       });
 
+
+
       analyticsWrapper.trackErrorEvent('stream_download_completion_error', 'QueueEventHandler', {
         error,
         eventData
       });
+
+      throw error;
     }
   }
 
@@ -278,6 +282,8 @@ class QueueEventHandler implements IQueueEventHandler {
         originalError: eventData.errorMessage,
         jobId: eventData.jobId
       });
+
+      throw errorFromFunction;
     }
   }
 
