@@ -60,6 +60,23 @@ class QueueEventHandler implements IQueueEventHandler {
     }
   }
 
+  private isProtocolError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || '';
+    return errorMessage.includes('Protocol error (Runtime.callFunctionOn): Target closed') ||
+           errorMessage.includes('Target closed') ||
+           errorMessage.includes('Protocol error');
+  }
+
+  private handleProtocolError(error: any, context: string): void {
+    loggerService.error(`Protocol error detected in ${context}. Triggering PM2 restart.`, {
+      error: error?.message || error?.toString(),
+      context
+    });
+    
+    // Throw a specific error that will cause PM2 to restart
+    throw new Error(`WHATSAPP_PROTOCOL_ERROR: ${error?.message || 'Target closed'} - Restarting application`);
+  }
+
   async handleStreamDownloadCompleted(eventData: {
     jobId: string;
     userId?: string;
@@ -124,6 +141,11 @@ class QueueEventHandler implements IQueueEventHandler {
       });
 
     } catch (error) {
+      // Check if this is a protocol error that requires PM2 restart
+      if (this.isProtocolError(error)) {
+        this.handleProtocolError(error, 'handleStreamDownloadCompleted');
+      }
+      
       // Record failed download in database AFTER handling fails
       if (eventData.messageData) {
         try {
@@ -221,6 +243,11 @@ class QueueEventHandler implements IQueueEventHandler {
       });
 
     } catch (errorFromFunction) {
+      // Check if this is a protocol error that requires PM2 restart
+      if (this.isProtocolError(errorFromFunction)) {
+        this.handleProtocolError(errorFromFunction, 'handleStreamDownloadFailed');
+      }
+      
       // Record failed download in database even if error handling fails
       if (eventData.messageData) {
         try {
@@ -321,6 +348,11 @@ class QueueEventHandler implements IQueueEventHandler {
       });
 
     } catch (error) {
+      // Check if this is a protocol error that requires PM2 restart
+      if (this.isProtocolError(error)) {
+        this.handleProtocolError(error, 'handleMediaDownload');
+      }
+      
       loggerService.logError(error as Error, 'QueueEventHandler.handleMediaDownload', {
         filePath: path,
         messageId: message.id
@@ -379,6 +411,11 @@ class QueueEventHandler implements IQueueEventHandler {
       });
 
     } catch (fallbackError) {
+      // Check if this is a protocol error that requires PM2 restart
+      if (this.isProtocolError(fallbackError)) {
+        this.handleProtocolError(fallbackError, 'handleMediaDownloadFallback');
+      }
+      
       loggerService.logError(fallbackError as Error, 'QueueEventHandler.handleMediaDownloadFallback', {
         originalUrl,
         messageId: message.id
