@@ -114,9 +114,9 @@ class QueueEventHandler implements IQueueEventHandler {
 
 
 
-      const userId = await this.getUserIdFromPhone(messageData.from);
+      const userId = await this.getUserIdFromPhone(messageData.from.split('@')[0]);
       if (!userId) {
-        loggerService.warn("User not found in database", { phone: messageData.from, jobId });
+        loggerService.warn("User not found in database", { phone: messageData.from.split('@')[0], jobId });
         return;
       }
 
@@ -129,7 +129,7 @@ class QueueEventHandler implements IQueueEventHandler {
         DownloadStatus.SENT
       );
 
-      analyticsWrapper.trackDownloadEvent('response_sent', messageData.from, {
+      analyticsWrapper.trackDownloadEvent('response_sent', messageData.from.split('@')[0], {
         platform: detectedPlatform,
         downloadId: jobId,
         messageId: messageData.id
@@ -149,7 +149,7 @@ class QueueEventHandler implements IQueueEventHandler {
       // Record failed download in database AFTER handling fails
       if (eventData.messageData) {
         try {
-          const userId = await this.getUserIdFromPhone(eventData.messageData.from);
+          const userId = await this.getUserIdFromPhone(eventData.messageData.from.split('@')[0]);
           if (userId) {
             const downloadRecord = await this.downloadRepository.create(
               eventData.url || '',
@@ -165,7 +165,7 @@ class QueueEventHandler implements IQueueEventHandler {
               downloadRecord.id
             );
           } else {
-            loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from, jobId: eventData.jobId });
+            loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from.split('@')[0], jobId: eventData.jobId });
           }
         } catch (dbError) {
           loggerService.logError(dbError as Error, 'QueueEventHandler.createFailedDownloadRecord');
@@ -217,7 +217,7 @@ class QueueEventHandler implements IQueueEventHandler {
       }
 
       // Get user ID from phone number
-      const userId = await this.getUserIdFromPhone(messageData.from);
+      const userId = await this.getUserIdFromPhone(messageData.from.split('@')[0]);
       if (!userId) {
         loggerService.warn("User not found in database", { phone: messageData.from, jobId });
         return;
@@ -255,7 +255,7 @@ class QueueEventHandler implements IQueueEventHandler {
       // Record failed download in database even if error handling fails
       if (eventData.messageData) {
         try {
-          const userId = await this.getUserIdFromPhone(eventData.messageData.from);
+          const userId = await this.getUserIdFromPhone(eventData.messageData.from.split('@')[0]);
           if (userId) {
             const downloadRecord = await this.downloadRepository.create(
               eventData.url || '',
@@ -271,7 +271,7 @@ class QueueEventHandler implements IQueueEventHandler {
               downloadRecord.id
             );
           } else {
-            loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from, jobId: eventData.jobId });
+            loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from.split('@')[0], jobId: eventData.jobId });
           }
         } catch (dbError) {
           loggerService.logError(dbError as Error, 'QueueEventHandler.createFailedDownloadRecord');
