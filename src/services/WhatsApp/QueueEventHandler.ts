@@ -129,12 +129,18 @@ class QueueEventHandler implements IQueueEventHandler {
         try {
           const userId = await this.getUserIdFromPhone(eventData.messageData.from);
           if (userId) {
-            await this.downloadRepository.create(
+            const downloadRecord = await this.downloadRepository.create(
               eventData.url || '',
               eventData.detectedPlatform || 'unknown',
               userId,
               BigInt(Date.now()),
               DownloadStatus.FAILED
+            );
+            
+            // Log error to database using the actual download record ID
+            await this.errorsRepository.createError(
+              error instanceof Error ? error.message : 'Unknown error occurred during download completion', 
+              downloadRecord.id
             );
           } else {
             loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from, jobId: eventData.jobId });
@@ -192,7 +198,7 @@ class QueueEventHandler implements IQueueEventHandler {
       }
 
       // Record failed download in database AFTER handling
-      await this.downloadRepository.create(
+      const downloadRecord = await this.downloadRepository.create(
         url || '',
         detectedPlatform || 'unknown',
         userId,
@@ -200,8 +206,8 @@ class QueueEventHandler implements IQueueEventHandler {
         DownloadStatus.FAILED
       );
 
-      // Log error to database
-      await this.errorsRepository.createError(errorMessage || 'Unknown error', jobId);
+      // Log error to database using the actual download record ID
+      await this.errorsRepository.createError(errorMessage || 'Unknown error', downloadRecord.id);
 
       analyticsWrapper.trackDownloadEvent('failed', messageData.from, {
         error: errorMessage,
@@ -220,12 +226,18 @@ class QueueEventHandler implements IQueueEventHandler {
         try {
           const userId = await this.getUserIdFromPhone(eventData.messageData.from);
           if (userId) {
-            await this.downloadRepository.create(
+            const downloadRecord = await this.downloadRepository.create(
               eventData.url || '',
               eventData.detectedPlatform || 'unknown',
               userId,
               BigInt(Date.now()),
               DownloadStatus.FAILED
+            );
+            
+            // Log error to database using the actual download record ID
+            await this.errorsRepository.createError(
+              errorFromFunction instanceof Error ? errorFromFunction.message : 'Unknown error occurred during download failure handling', 
+              downloadRecord.id
             );
           } else {
             loggerService.warn("User not found for failed download record", { phone: eventData.messageData.from, jobId: eventData.jobId });
