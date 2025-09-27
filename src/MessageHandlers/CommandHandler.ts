@@ -1,11 +1,11 @@
 import { Message } from "whatsapp-web.js";
-import { ICommandHandler } from "../types/IMessageHandler";
-import loggerService from "../services/Logger";
 import analyticsWrapper from "../services/AnalyticsWrapper";
+import loggerService from "../services/Logger";
+import { ICommandHandler } from "../types/IMessageHandler";
 import { MessageUtils } from "../utils/MessageUtils";
 
 export class CommandHandler implements ICommandHandler {
-  private readonly supportedCommands = [".", "/", "..", "hi","هلا"];
+  private readonly supportedCommands = [".", "/", "..", "hi", "هلا"];
 
   async canHandle(message: Message): Promise<boolean> {
     if (!message.body) return false;
@@ -29,7 +29,7 @@ export class CommandHandler implements ICommandHandler {
         return;
       }
 
-      const response = `Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from ANY Website, and I will download it for you.\nAdditionally, I can create stickers from images! Just send me any image, GIF or Short Video, and I will make a sticker for you.`;
+      const response = `We temporarily stopped supporting sticker creation due to WhatsApp policy changes. \n Hi there! I'm WhatsApp Wizard.\nNow you can send me any link from ANY Website, and I will download it for you.\n `;
       const responseWithChannelInfo =
         MessageUtils.appendTelegramChannelInfo(response);
 

@@ -1,7 +1,6 @@
 import { Message } from 'whatsapp-web.js';
 import { CommandHandler } from '../../MessageHandlers/CommandHandler';
 import { LinkHandler } from '../../MessageHandlers/LinkHandler';
-import { MediaHandler } from '../../MessageHandlers/MediaHandler';
 import { TextHandler } from '../../MessageHandlers/TextHandler';
 import { IMessageHandler } from '../../types/IMessageHandler';
 import { IMessageProcessor } from '../../types/IMessageProcessor';
@@ -16,7 +15,7 @@ class MessageProcessor implements IMessageProcessor {
   constructor() {
     this.handlers = [
       new CommandHandler(),
-      new MediaHandler(),
+  //    new MediaHandler(),
       new LinkHandler(),
       new TextHandler()
     ];
